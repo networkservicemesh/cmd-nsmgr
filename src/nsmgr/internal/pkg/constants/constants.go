@@ -14,17 +14,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package deviceplugin
+// Package constants - a most of constant definitions.
+package constants
 
 const (
 	// A number of devices we have in buffer for use, so we hold extra DeviceBuffer count of deviceids send to kubelet.
 	DeviceBuffer = 30
 	//TODO - look at moving the BaseDir to constants somewhere in SDK
-	BaseDir     = "/var/lib/networkservicemesh/"
 	SpireSocket = "/run/spire/sockets"
 
 	// NsmServerSocketEnv is the name of the env variable to define NSM server socket
 	NsmServerSocketEnv = "NSM_SERVER_SOCKET"
 	// NsmClientSocketEnv is the name of the env variable to define NSM client socket
 	NsmClientSocketEnv = "NSM_CLIENT_SOCKET"
+
+	NsmServerSocket = "nsm.server.io.sock"
+	NsmClientSocket = "nsm.client.io.sock"
+
+	KubeletServerSock = "networkservicemesh.io.sock"
+
+	// ResourceName - is a Device API resource name
+	ResourceName = "networkservicemesh.io/socket"
 )

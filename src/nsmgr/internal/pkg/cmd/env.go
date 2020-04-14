@@ -18,11 +18,10 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/flags"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
-	"github.com/networkservicemesh/cmd-forwarder-vppagent/src/forwarder/internal/pkg/flags"
 )
 
 func init() {

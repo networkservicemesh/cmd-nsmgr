@@ -18,7 +18,10 @@ package flags
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/constants"
+	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 	"net/url"
+	"path"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -32,9 +35,48 @@ const (
 	envPrefix = "NSM"
 )
 
-var BaseDir string
-var SpiffeAgentURL url.URL
-var RegistryURL url.URL
+// DefinedFlags - a set of flag values
+type DefinedFlags struct {
+	BaseDir string
+
+	SpiffeAgentURL url.URL
+	RegistryURL    url.URL
+
+	// Some environment variables
+	Insecure bool
+	Name     string
+
+	DeviceAPIListenEndpoint string
+	DeviceAPIRegistryServer string
+	DeviceAPIPluginPath     string
+}
+
+// Defaults - default values loaded from environment
+var Defaults = &DefinedFlags{
+	Insecure:                true,
+	Name:                    "Unnamed",
+	DeviceAPIListenEndpoint: path.Join(pluginapi.DevicePluginPath, constants.KubeletServerSock),
+	DeviceAPIRegistryServer: "unix:" + pluginapi.KubeletSocket,
+	DeviceAPIPluginPath:     pluginapi.DevicePluginPath,
+}
+
+// DefineFlags - redefine flags
+func DefineFlags(useDefault bool, defineF func(flags *DefinedFlags)) {
+	val := *Defaults
+	if !useDefault {
+		val = *Values
+	}
+	Values = &val
+	defineF(Values)
+}
+
+// RestoreFlags - restore flags based on defaults
+func RestoreFlags() {
+	Values = Defaults
+}
+
+// Values - a current set valuse, tests could change this
+var Values = Defaults
 
 // CobraCmdDefaults - default flags for use in many different commands
 func CobraCmdDefaults(cmd *cobra.Command) {
@@ -46,31 +88,37 @@ func CobraCmdDefaults(cmd *cobra.Command) {
 	})
 }
 
-func Flags(flags *pflag.FlagSet) {
+func Flags(f *pflag.FlagSet) {
 	// BaseDir
-	flags.StringVarP(&BaseDir, "base-dir", "b", "./",
-		"BaseDir to use for the memif mechanism")
+	f.StringVarP(&Defaults.BaseDir, "base-dir", "b", "./",
+		"BaseDir to hold all sockets and mechanism files.")
 
 	// SpiffeAgent To URL
-	spiffeAgentURLValue := values.NewGrpcURLValue(&SpiffeAgentURL)
+	spiffeAgentURLValue := values.NewGrpcURLValue(&Defaults.SpiffeAgentURL)
 	_ = spiffeAgentURLValue.Set("unix:///run/spire/sockets/agent.sock")
-	flags.VarP(spiffeAgentURLValue, "spire-agent-url", "s",
+	f.VarP(spiffeAgentURLValue, "spire-agent-url", "s",
 		"URL to Spiffe Agent")
 
 	// Registry URL
-	// SpiffeAgent To URL
-	registryURLValue := values.NewGrpcURLValue(&RegistryURL)
-	_ = registryURLValue.Set("unix:///run/spire/sockets/agent.sock")
-	flags.VarP(registryURLValue, "registry-url", "r",
+	registryURLValue := values.NewGrpcURLValue(&Defaults.RegistryURL)
+	_ = registryURLValue.Set("unix:///run/networkservicemesh/registry/registry.sock")
+	f.VarP(registryURLValue, "registry-url", "r",
 		"URL to Registry")
 }
-
 func ViperFlags(flags *pflag.FlagSet) {
 	Flags(flags)
 	_ = viper.BindPFlags(flags)
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix(envPrefix)
 	viper.SetEnvKeyReplacer(envReplacer())
+
+	// Extract some values from viper
+	ViperLoadFlags()
+}
+
+func ViperLoadFlags() {
+	Defaults.Insecure = viper.GetBool("insecure")
+	Defaults.Name = viper.GetString("name")
 }
 
 func postInitCommands(commands []*cobra.Command) {

@@ -25,6 +25,6 @@ import (
 func main() {
 	err := cmd.Execute()
 	if err != nil {
-		logrus.Fatalf("error executing rootCmd: %v", err)
+		logrus.Fatalf("error executing root command: %v", err)
 	}
 }

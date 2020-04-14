@@ -18,9 +18,8 @@
 package cmd
 
 import (
+	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/flags"
 	"github.com/spf13/cobra"
-
-	"github.com/networkservicemesh/cmd-forwarder-vppagent/src/forwarder/internal/pkg/flags"
 )
 
 func init() {
@@ -28,12 +27,9 @@ func init() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "forwarder",
-	Short: "Provides xconnect network service",
-	Long: `Provides xconnect network service.  Supported mechanisms:
-     - memif
-     - kernel
-     - vxlan`,
+	Use:   "nsmgr",
+	Short: "Provides Network Service Manager",
+	Long:  `Provides Network Service Manager.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Usage()
 	},
@@ -41,5 +37,11 @@ var rootCmd = &cobra.Command{
 
 // Execute - execute the command
 func Execute() error {
+	return rootCmd.Execute()
+}
+
+// TestExecute - execute the command with test parameters
+func TestExecute(cmdLine ...string) error {
+	rootCmd.SetArgs(cmdLine)
 	return rootCmd.Execute()
 }

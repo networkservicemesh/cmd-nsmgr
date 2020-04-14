@@ -18,42 +18,83 @@ package deviceplugin
 
 import (
 	"context"
-	"net"
-	"net/url"
-
-	"github.com/networkservicemesh/api/pkg/api/networkservice"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr/peertracker"
+	"fmt"
+	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/constants"
+	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/flags"
 	"github.com/networkservicemesh/sdk/pkg/tools/serialize"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
+	"net"
+	"os"
+	"path"
+	"path/filepath"
+	"time"
 )
 
 type NsmDevicePluginServer interface {
-	nsmgr.Nsmgr
 	pluginapi.DevicePluginServer
+	Start() error
+	Stop()
+	ListenEndpoint() string
 }
 
 type nsmgrDevicePlugin struct {
-	nsmgr.Nsmgr
 	devices               map[string]*pluginapi.Device
 	allocatedDevices      map[string]*pluginapi.Device
 	executor              serialize.Executor
 	insecure              bool
-	reallocate            func(u *url.URL)
 	listAndWatchListeners []pluginapi.DevicePlugin_ListAndWatchServer
+	grpcServer            *grpc.Server
+	listenEndpoint        string
+	sock                  net.Listener
 }
 
-func NewServer(name string, insecure bool, registryCC *grpc.ClientConn) NsmDevicePluginServer {
+func (n *nsmgrDevicePlugin) ListenEndpoint() string {
+	return n.listenEndpoint
+}
+func (n *nsmgrDevicePlugin) Stop() {
+	if n.sock != nil {
+		_ = n.sock.Close()
+		n.sock = nil
+	}
+	if n.grpcServer != nil {
+		n.grpcServer.Stop()
+		n.grpcServer = nil
+	}
+}
+func (n *nsmgrDevicePlugin) Start() error {
+	// We do not need a peer tracker in case of single source GRPC server.
+	_ = os.Remove(n.listenEndpoint)
+	var err error
+	n.sock, err = net.Listen("unix", n.listenEndpoint)
+	if err != nil {
+		err = errors.WithMessagef(err, "failed to listen on %s: %+v", n.listenEndpoint, err)
+		return err
+	}
+
+	n.grpcServer = grpc.NewServer()
+	pluginapi.RegisterDevicePluginServer(n.grpcServer, n)
+	go func() {
+		if serveErr := n.grpcServer.Serve(n.sock); serveErr != nil {
+			logrus.Errorf("failed to start device plugin grpc server %v %v", n.listenEndpoint, serveErr)
+		}
+	}()
+
+	return n.Register()
+}
+
+func NewServer(insecure bool) NsmDevicePluginServer {
 	rv := &nsmgrDevicePlugin{
-		devices:          make(map[string]*pluginapi.Device, DeviceBuffer),
-		allocatedDevices: make(map[string]*pluginapi.Device, DeviceBuffer),
+		devices:          make(map[string]*pluginapi.Device, constants.DeviceBuffer),
+		allocatedDevices: make(map[string]*pluginapi.Device, constants.DeviceBuffer),
 		executor:         serialize.NewExecutor(),
 		insecure:         insecure,
+		listenEndpoint:   flags.Values.DeviceAPIListenEndpoint,
 	}
 	// TODO - Fix applying peer_tracker here
 	// rv.Nsmgr = peer_tracker.NewServer(nsmgr.NewEndpoint(name, registryCC), &rv.reallocate)
-	rv.Nsmgr = peertracker.NewServer(nsmgr.NewNsmgr(name, registryCC), &rv.reallocate)
 	rv.resizeDevicePool()
 	return rv
 }
@@ -66,7 +107,7 @@ func (n *nsmgrDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.DeviceP
 			listAndWatchResponse.Devices = append(listAndWatchResponse.Devices, device)
 		}
 		for _, listAndWatchListener := range n.listAndWatchListeners {
-			listAndWatchListener.Send(listAndWatchResponse)
+			_ = listAndWatchListener.Send(listAndWatchResponse)
 		}
 	})
 
@@ -86,12 +127,21 @@ func (n *nsmgrDevicePlugin) Allocate(ctx context.Context, reqs *pluginapi.Alloca
 	containerResponses := []*pluginapi.ContainerAllocateResponse{}
 	for _, req := range reqs.GetContainerRequests() {
 		for _, deviceid := range req.GetDevicesIDs() {
-			// Close any existing connection from previous allocation
-			n.reallocate(&url.URL{
-				Scheme: "unix",
-				Path:   localServerSocketFile(deviceid),
-			})
+			_, ok := n.devices[deviceid]
+			if !ok {
+				return nil, fmt.Errorf("device id passed not found %v", deviceid)
+			}
+			// Clean any memif files, or endpoint socket files.
+			// Connections will be closed automatically.
+			n.cleanFolder(ctx, hostDeviceDirectory(deviceid))
+			_ = os.MkdirAll(hostDeviceDirectory(deviceid), os.ModeDir|os.ModePerm)
+
 			mounts := []*pluginapi.Mount{
+				{
+					ContainerPath: containerServerDirectory(deviceid),
+					HostPath:      hostServerDirectory(deviceid),
+					ReadOnly:      false,
+				},
 				{
 					ContainerPath: containerDeviceDirectory(deviceid),
 					HostPath:      hostDeviceDirectory(deviceid),
@@ -99,13 +149,13 @@ func (n *nsmgrDevicePlugin) Allocate(ctx context.Context, reqs *pluginapi.Alloca
 				},
 			}
 			envs := map[string]string{
-				NsmServerSocketEnv: containerServerSocketFile(deviceid),
-				NsmClientSocketEnv: containerClientSocketFile(deviceid),
+				constants.NsmServerSocketEnv: containerServerSocketFile(deviceid),
+				constants.NsmClientSocketEnv: containerClientSocketFile(deviceid),
 			}
 			if !n.insecure {
 				mounts = append(mounts, &pluginapi.Mount{
-					ContainerPath: SpireSocket,
-					HostPath:      SpireSocket,
+					ContainerPath: constants.SpireSocket,
+					HostPath:      constants.SpireSocket,
 					ReadOnly:      true,
 				})
 			}
@@ -133,30 +183,69 @@ func (n *nsmgrDevicePlugin) GetDevicePluginOptions(context.Context, *pluginapi.E
 
 func (n *nsmgrDevicePlugin) resizeDevicePool() {
 	n.executor.AsyncExec(func() {
-		for len(n.devices)-len(n.allocatedDevices) < DeviceBuffer {
+		for len(n.devices)-len(n.allocatedDevices) < constants.DeviceBuffer {
 			device := &pluginapi.Device{
-				ID:     "nsm-" + string(len(n.devices)),
+				ID:     "nsm-" + fmt.Sprintf("%d", len(n.devices)),
 				Health: pluginapi.Healthy,
 			}
-			listener, err := net.Listen("unix", localServerSocketFile(device.GetID()))
-			if err != nil {
-				// Note: There's nothing productive we can do about this other than failing here
-				// and thus not increasing the device pool
-				return
-			}
-			grpcServer := grpc.NewServer()
-			go func() {
-				grpcServer.Serve(listener)
-			}()
-			n.Nsmgr.Register(grpcServer)
 			n.devices[device.GetID()] = device
 		}
 		listAndWatchResponse := &pluginapi.ListAndWatchResponse{}
-		for _, device := range n.devices {
-			listAndWatchResponse.Devices = append(listAndWatchResponse.Devices, device)
+
+		for _, d := range n.devices {
+			listAndWatchResponse.Devices = append(listAndWatchResponse.Devices, d)
 		}
 		for _, listAndWatchListener := range n.listAndWatchListeners {
-			listAndWatchListener.Send(listAndWatchResponse)
+			_ = listAndWatchListener.Send(listAndWatchResponse)
 		}
 	})
+}
+
+func (n *nsmgrDevicePlugin) cleanFolder(ctx context.Context, dir string) {
+	// Clean a passed folder
+	d, err := os.Open(dir)
+	if err != nil {
+		// folder not exists, return
+		return
+	}
+	defer func() { _ = d.Close() }()
+	names := []string{}
+	names, err = d.Readdirnames(-1)
+	if err != nil {
+		// folder not exists, return
+		return
+	}
+	for _, name := range names {
+		fp := filepath.Join(dir, name)
+		err = os.RemoveAll(fp)
+		if err != nil {
+			logrus.Errorf("failed to remove all at %v %v", fp, err)
+		}
+	}
+}
+
+func (n *nsmgrDevicePlugin) Register() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(ctx, flags.Values.DeviceAPIRegistryServer, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	client := pluginapi.NewRegistrationClient(conn)
+	reqt := &pluginapi.RegisterRequest{
+		Version:      pluginapi.Version,
+		Endpoint:     path.Base(n.listenEndpoint),
+		ResourceName: constants.ResourceName,
+	}
+
+	_, err = client.Register(context.Background(), reqt)
+	if err != nil {
+		return err
+	}
+	return nil
 }

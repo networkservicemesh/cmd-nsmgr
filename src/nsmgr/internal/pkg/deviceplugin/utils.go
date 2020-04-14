@@ -16,43 +16,40 @@
 
 package deviceplugin
 
-const (
-	nsmServerSocket = "nsm.server.io.sock"
-	nsmClientSocket = "nsm.client.io.sock"
+import (
+	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/constants"
+	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/flags"
 )
 
+// A container endpoint and memif directory.
 func containerDeviceDirectory(deviceId string) string {
-	return BaseDir
+	return flags.Values.BaseDir + "/client/" + deviceId
 }
 
+// A container server directory.
+func containerServerDirectory(deviceId string) string {
+	return flags.Values.BaseDir + "/nsm/"
+}
+
+// A host device directory
+func hostServerDirectory(deviceId string) string {
+	return flags.Values.BaseDir + "/nsm/"
+}
+
+// A host device directory
 func hostDeviceDirectory(deviceId string) string {
-	return BaseDir + deviceId + "/"
+	return flags.Values.BaseDir + "/" + deviceId + "/"
 }
 
-func localDeviceDirectory(deviceId string) string {
-	return hostDeviceDirectory(deviceId)
-}
-
+// Container server socket file
 func containerServerSocketFile(deviceId string) string {
-	return containerDeviceDirectory(deviceId) + nsmServerSocket
+	return containerServerDirectory(deviceId) + constants.NsmServerSocket
 }
 
 func hostServerSocketFile(deviceId string) string {
-	return hostDeviceDirectory(deviceId) + nsmServerSocket
-}
-
-func localServerSocketFile(deviceId string) string {
-	return hostServerSocketFile(deviceId)
+	return containerServerDirectory(deviceId) + constants.NsmServerSocket
 }
 
 func containerClientSocketFile(deviceId string) string {
-	return containerDeviceDirectory(deviceId) + nsmClientSocket
-}
-
-func hostClientSocketFile(deviceId string) string {
-	return hostDeviceDirectory(deviceId) + nsmClientSocket
-}
-
-func localClientSocketFile(deviceId string) string {
-	return hostClientSocketFile(deviceId)
+	return containerDeviceDirectory(deviceId) + constants.NsmClientSocket
 }
