@@ -44,11 +44,11 @@ type nsmgrDevicePlugin struct {
 	devices               map[string]*pluginapi.Device
 	allocatedDevices      map[string]*pluginapi.Device
 	executor              serialize.Executor
-	insecure              bool
 	listAndWatchListeners []pluginapi.DevicePlugin_ListAndWatchServer
 	grpcServer            *grpc.Server
 	listenEndpoint        string
 	sock                  net.Listener
+	values                *flags.DefinedFlags
 }
 
 func (n *nsmgrDevicePlugin) ListenEndpoint() string {
@@ -83,13 +83,13 @@ func (n *nsmgrDevicePlugin) Start() error {
 	return n.Register()
 }
 
-func NewServer(insecure bool) NsmDevicePluginServer {
+func NewServer(values *flags.DefinedFlags) NsmDevicePluginServer {
 	rv := &nsmgrDevicePlugin{
 		devices:          make(map[string]*pluginapi.Device, constants.DeviceBuffer),
 		allocatedDevices: make(map[string]*pluginapi.Device, constants.DeviceBuffer),
 		executor:         serialize.NewExecutor(),
-		insecure:         insecure,
-		listenEndpoint:   flags.Values.DeviceAPIListenEndpoint,
+		listenEndpoint:   values.DeviceAPIListenEndpoint,
+		values:           values,
 	}
 	rv.resizeDevicePool()
 	return rv
@@ -129,26 +129,26 @@ func (n *nsmgrDevicePlugin) Allocate(ctx context.Context, reqs *pluginapi.Alloca
 			}
 			// Clean any memif files, or endpoint socket files.
 			// Connections will be closed automatically.
-			n.cleanFolder(ctx, hostDeviceDirectory(deviceid))
-			_ = os.MkdirAll(hostDeviceDirectory(deviceid), os.ModeDir|os.ModePerm)
+			n.cleanFolder(ctx, hostDeviceDirectory(n.values, deviceid))
+			_ = os.MkdirAll(hostDeviceDirectory(n.values, deviceid), os.ModeDir|os.ModePerm)
 
 			mounts := []*pluginapi.Mount{
 				{
-					ContainerPath: containerServerDirectory(deviceid),
-					HostPath:      hostServerDirectory(deviceid),
+					ContainerPath: containerServerDirectory(n.values, deviceid),
+					HostPath:      hostServerDirectory(n.values, deviceid),
 					ReadOnly:      false,
 				},
 				{
-					ContainerPath: containerDeviceDirectory(deviceid),
-					HostPath:      hostDeviceDirectory(deviceid),
+					ContainerPath: containerDeviceDirectory(n.values, deviceid),
+					HostPath:      hostDeviceDirectory(n.values, deviceid),
 					ReadOnly:      false,
 				},
 			}
 			envs := map[string]string{
-				constants.NsmServerSocketEnv: containerServerSocketFile(deviceid),
-				constants.NsmClientSocketEnv: containerClientSocketFile(deviceid),
+				constants.NsmServerSocketEnv: containerServerSocketFile(n.values, deviceid),
+				constants.NsmClientSocketEnv: containerClientSocketFile(n.values, deviceid),
 			}
-			if !n.insecure {
+			if !n.values.Insecure {
 				mounts = append(mounts, &pluginapi.Mount{
 					ContainerPath: constants.SpireSocket,
 					HostPath:      constants.SpireSocket,
@@ -227,7 +227,7 @@ func (n *nsmgrDevicePlugin) Register() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	conn, err := grpc.DialContext(ctx, "unix:"+flags.Values.DeviceAPIRegistryServer, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, "unix:"+n.values.DeviceAPIRegistryServer, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		return err
 	}

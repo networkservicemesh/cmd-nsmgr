@@ -3,9 +3,9 @@ package test
 import (
 	"context"
 	"github.com/docker/go-connections/nat"
-	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/cmd"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/constants"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/flags"
+	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/manager"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/test/dockertest"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/test/mock/deviceapi"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/test/mock/registry"
@@ -29,6 +29,7 @@ type testSetup struct {
 	t              *testing.T
 	registryServer registry.Server
 	tlsPeer        *spiffe.TLSPeer
+	values         flags.DefinedFlags
 }
 
 func (s *testSetup) SetupSpire() {
@@ -50,34 +51,29 @@ func (s *testSetup) SetupSpire() {
 	s.spireContainer.Start()
 	s.spireContainer.LogWaitPattern("Spire Proxy ready...", dockertest.DockerTimeout)
 
-	flags.DefineFlags(func(f *flags.DefinedFlags) {
-		f.Insecure = false
-		agentUrl, _ := url.Parse("tcp://127.0.0.1:9099")
-		f.SpiffeAgentURL = *agentUrl
-	})
+	s.values.Insecure = false
+	agentUrl, _ := url.Parse("tcp://127.0.0.1:9099")
+	s.values.SpiffeAgentURL = *agentUrl
+
 	var err error
-	s.tlsPeer, err = spiffe.NewTLSPeer(spiffe.WithWorkloadAPIAddr(flags.Values.SpiffeAgentURL.String()))
+	s.tlsPeer, err = spiffe.NewTLSPeer(spiffe.WithWorkloadAPIAddr(s.values.SpiffeAgentURL.String()))
 	require.Nil(s.t, err)
 }
 
 func (s *testSetup) Start() {
 	s.dt = dockertest.NewDockerTest(s.t)
 	s.baseDir = TempFolder()
-	flags.RestoreFlags()
 
 	// Update flags
-	flags.DefineFlags(func(f *flags.DefinedFlags) {
-		f.BaseDir = s.baseDir
-		f.Name = "nsm-test"
-		f.Insecure = true
-		f.DeviceAPIPluginPath = s.baseDir
-	})
+	s.values.BaseDir = s.baseDir
+	s.values.Name = "nsm-test"
+	s.values.Insecure = true
+	s.values.DeviceAPIPluginPath = s.baseDir
 }
 
 func (s *testSetup) Stop() {
 	s.dt.Stop()
 	_ = os.RemoveAll(s.baseDir)
-	flags.RestoreFlags()
 
 	if s.registryServer != nil {
 		s.registryServer.Stop()
@@ -93,26 +89,22 @@ func (s *testSetup) StartDeviceAPI() {
 	require.Nil(s.t, s.mockDeviceApi.Start())
 
 	// Update flags
-	flags.DefineFlags(func(f *flags.DefinedFlags) {
-		f.DeviceAPIListenEndpoint = path.Join(s.baseDir, constants.KubeletServerSock)
-		f.DeviceAPIPluginPath = s.baseDir
-		f.DeviceAPIRegistryServer = s.mockDeviceApi.GetRegistrySocket()
-	})
+	s.values.DeviceAPIListenEndpoint = path.Join(s.baseDir, constants.KubeletServerSock)
+	s.values.DeviceAPIPluginPath = s.baseDir
+	s.values.DeviceAPIRegistryServer = s.mockDeviceApi.GetRegistrySocket()
 }
 
 func (s *testSetup) StartRegistry() {
 	s.registryServer = registry.NewServer(path.Join(s.baseDir, "registry.sock"))
 	require.Nil(s.t, s.registryServer.Start(grpcoptions.SpiffeCreds(s.tlsPeer, 15*time.Second)))
 
-	flags.DefineFlags(func(f *flags.DefinedFlags) {
-		f.RegistryURL = s.registryServer.GetListenEndpointURI()
-	})
-
+	s.values.RegistryURL = s.registryServer.GetListenEndpointURI()
 }
 
 func NewSetup(t *testing.T) *testSetup {
 	setup := &testSetup{
-		t: t,
+		t:      t,
+		values: *flags.Defaults,
 	}
 	setup.Start()
 	return setup
@@ -133,9 +125,10 @@ func TestNSMgrRegister(t *testing.T) {
 	defer cancel()
 	var wg sync.WaitGroup
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
-		e := cmd.TestExecute(ctx, "run")
+		e := manager.RunNsmgr(ctx, &setup.values)
 		require.Nil(t, e)
 	}()
 
@@ -173,7 +166,7 @@ func TestNSMgrRegisterRestart(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		e := cmd.TestExecute(ctx, "run")
+		e := manager.RunNsmgr(ctx, &setup.values)
 		require.Nil(t, e)
 	}()
 

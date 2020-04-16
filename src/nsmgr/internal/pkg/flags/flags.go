@@ -60,19 +60,6 @@ var Defaults = &DefinedFlags{
 	DeviceAPIPluginPath:     pluginapi.DevicePluginPath,
 }
 
-// DefineFlags - redefine flags
-func DefineFlags(defineF func(flags *DefinedFlags)) {
-	defineF(Values)
-}
-
-// RestoreFlags - restore flags based on defaults
-func RestoreFlags() {
-	Values = Defaults
-}
-
-// Values - a current set valuse, tests could change this
-var Values = Defaults
-
 // CobraCmdDefaults - default flags for use in many different commands
 func CobraCmdDefaults(cmd *cobra.Command) {
 	ViperFlags(cmd.Flags())

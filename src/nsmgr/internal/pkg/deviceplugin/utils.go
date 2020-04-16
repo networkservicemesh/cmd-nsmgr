@@ -22,34 +22,34 @@ import (
 )
 
 // A container endpoint and memif directory.
-func containerDeviceDirectory(deviceId string) string {
-	return flags.Values.BaseDir + "/client/" + deviceId
+func containerDeviceDirectory(values *flags.DefinedFlags, deviceId string) string {
+	return values.BaseDir + "/client/" + deviceId
 }
 
 // A container server directory.
-func containerServerDirectory(deviceId string) string {
-	return flags.Values.BaseDir + "/nsm/"
+func containerServerDirectory(values *flags.DefinedFlags, deviceId string) string {
+	return values.BaseDir + "/nsm/"
 }
 
 // A host device directory
-func hostServerDirectory(deviceId string) string {
-	return flags.Values.BaseDir + "/nsm/"
+func hostServerDirectory(values *flags.DefinedFlags, deviceId string) string {
+	return values.BaseDir + "/nsm/"
 }
 
 // A host device directory
-func hostDeviceDirectory(deviceId string) string {
-	return flags.Values.BaseDir + "/" + deviceId + "/"
+func hostDeviceDirectory(values *flags.DefinedFlags, deviceId string) string {
+	return values.BaseDir + "/" + deviceId + "/"
 }
 
 // Container server socket file
-func containerServerSocketFile(deviceId string) string {
-	return containerServerDirectory(deviceId) + constants.NsmServerSocket
+func containerServerSocketFile(values *flags.DefinedFlags, deviceId string) string {
+	return containerServerDirectory(values, deviceId) + constants.NsmServerSocket
 }
 
-func hostServerSocketFile(deviceId string) string {
-	return containerServerDirectory(deviceId) + constants.NsmServerSocket
+func hostServerSocketFile(values *flags.DefinedFlags, deviceId string) string {
+	return containerServerDirectory(values, deviceId) + constants.NsmServerSocket
 }
 
-func containerClientSocketFile(deviceId string) string {
-	return containerDeviceDirectory(deviceId) + constants.NsmClientSocket
+func containerClientSocketFile(values *flags.DefinedFlags, deviceId string) string {
+	return containerDeviceDirectory(values, deviceId) + constants.NsmClientSocket
 }
