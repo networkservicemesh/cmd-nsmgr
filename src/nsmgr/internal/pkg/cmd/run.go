@@ -21,8 +21,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/constants"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
+	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
 	"github.com/spiffe/go-spiffe/spiffe"
-	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 	"net"
 	"path"
 
@@ -51,7 +51,11 @@ var runCmd = &cobra.Command{
      - memif
      - kernel
      - vxlan`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+
+		span := spanhelper.FromContext(cmdContext, "run")
+		defer span.Finish()
+
 		var err error
 		// Capture signals to cleanup before exiting - note: this *must* be the first thing in main
 		sigs := make(chan os.Signal, 1)
@@ -66,23 +70,30 @@ var runCmd = &cobra.Command{
 		logrus.SetReportCaller(true)
 
 		// Context to use for all things started in main
-		ctx, cancelFunc := context.WithCancel(context.Background())
+		ctx, cancelFunc := context.WithCancel(span.Context())
 		defer cancelFunc()
 
 		var spiffieTlsPeer *spiffe.TLSPeer
+		span.LogValue("Insecure", flags.Values.Insecure)
 		if !flags.Values.Insecure {
 			spiffieTlsPeer, err = spiffe.NewTLSPeer(spiffe.WithWorkloadAPIAddr(flags.Values.SpiffeAgentURL.String()))
 			if err != nil {
-				logrus.Fatalf("failed to create new spiffe TLS Peer %v", err)
+				span.LogErrorf("failed to create new spiffe TLS Peer %v", err)
+				return err
 			}
 		}
 
+		regSpan := spanhelper.FromContext(ctx, "dial-registry")
+		defer regSpan.Finish()
 		var registryCC grpc.ClientConnInterface
-		registryCC, err = grpc.DialContext(ctx, flags.Values.RegistryURL.String(), grpcoptions.WithSpiffe(spiffieTlsPeer, 15*time.Second), grpc.WithBlock())
+		registryCC, err = grpc.DialContext(regSpan.Context(), flags.Values.RegistryURL.String(), grpcoptions.WithSpiffe(spiffieTlsPeer, 15*time.Second), grpc.WithBlock())
 
 		if err != nil {
-			logrus.Fatalf("failed to dial NSE Registry")
+			regSpan.LogErrorf("failed to dial NSE Registry", err)
+			return err
 		}
+		regSpan.Finish()
+
 		nsmgr := nsmgr.NewServer(flags.Values.Name, nil, registryCC)
 
 		nsmDir := path.Join(flags.Values.BaseDir, "nsm")
@@ -92,10 +103,10 @@ var runCmd = &cobra.Command{
 		if err != nil {
 			// Note: There's nothing productive we can do about this other than failing here
 			// and thus not increasing the device pool
-			return
+			return err
 		}
 
-		grpcServer := grpc.NewServer(grpcoptions.SpiffeCreds(spiffieTlsPeer, 5*time.Second))
+		grpcServer := grpc.NewServer(grpcoptions.SpiffeCreds(spiffieTlsPeer, 15*time.Second))
 		nsmgr.Register(grpcServer)
 
 		go func() {
@@ -105,19 +116,17 @@ var runCmd = &cobra.Command{
 		// Start device plugin
 		dp := deviceplugin.NewServer(flags.Values.Insecure)
 
-		watcher, err := fsnotify.NewWatcher()
-		if err != nil {
-			logrus.Fatalf("failed to create FS watcher")
-		}
-
-		// Listen for kubelet device api register socket, we need to re-register in case this socket is deleted, created agains.
-		err = watcher.Add(flags.Values.DeviceAPIPluginPath)
-		if err != nil {
-			_ = watcher.Close()
-			logrus.Fatalf("failed to create FS watcher")
-		}
-
+		var watcher *fsnotify.Watcher
+		watcher, err = createWatcher()
+		defer func() {
+			if watcher != nil {
+				_ = watcher.Close()
+			}
+		}()
 	restart:
+		if ctx.Err() != nil {
+			return nil
+		}
 		dp.Stop()
 		err = dp.Start()
 		if err != nil {
@@ -125,11 +134,13 @@ var runCmd = &cobra.Command{
 		}
 	events:
 		for {
-
 			select {
+			case <-ctx.Done():
+				logrus.Infof("Command was canceled")
+				return nil
 			case event := <-watcher.Events:
-				if event.Name == pluginapi.KubeletSocket && event.Op&fsnotify.Create == fsnotify.Create {
-					logrus.Printf("inotify: %s created, restarting.", pluginapi.KubeletSocket)
+				if event.Name == flags.Values.DeviceAPIRegistryServer && (event.Op&fsnotify.Create == fsnotify.Create) {
+					logrus.Printf("inotify: %s created, restarting.", flags.Values.DeviceAPIRegistryServer)
 					goto restart
 				}
 
@@ -147,5 +158,23 @@ var runCmd = &cobra.Command{
 				}
 			}
 		}
+		return nil
 	},
+}
+
+func createWatcher() (*fsnotify.Watcher, error) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		logrus.Errorf("failed to create FS watcher %v", err)
+		return nil, err
+	}
+
+	// Listen for kubelet device api register socket, we need to re-register in case this socket is deleted, created agains.
+	err = watcher.Add(flags.Values.DeviceAPIPluginPath)
+	if err != nil {
+		_ = watcher.Close()
+		logrus.Errorf("failed to create FS watcher %v", err)
+		return nil, err
+	}
+	return watcher, nil
 }

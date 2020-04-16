@@ -13,6 +13,7 @@ require (
 	github.com/networkservicemesh/api v0.0.0-20200413003704-e57e43fc2237
 	github.com/networkservicemesh/sdk v0.0.0-20200413004036-bebb7bdc2a05
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
+	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.0-20181021141114-fe5e611709b0

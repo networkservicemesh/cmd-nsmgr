@@ -77,9 +77,7 @@ func (n *nsmgrDevicePlugin) Start() error {
 	n.grpcServer = grpc.NewServer()
 	pluginapi.RegisterDevicePluginServer(n.grpcServer, n)
 	go func() {
-		if serveErr := n.grpcServer.Serve(n.sock); serveErr != nil {
-			logrus.Errorf("failed to start device plugin grpc server %v %v", n.listenEndpoint, serveErr)
-		}
+		_ = n.grpcServer.Serve(n.sock)
 	}()
 
 	return n.Register()
@@ -93,8 +91,6 @@ func NewServer(insecure bool) NsmDevicePluginServer {
 		insecure:         insecure,
 		listenEndpoint:   flags.Values.DeviceAPIListenEndpoint,
 	}
-	// TODO - Fix applying peer_tracker here
-	// rv.Nsmgr = peer_tracker.NewServer(nsmgr.NewEndpoint(name, registryCC), &rv.reallocate)
 	rv.resizeDevicePool()
 	return rv
 }
@@ -106,9 +102,7 @@ func (n *nsmgrDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.DeviceP
 		for _, device := range n.devices {
 			listAndWatchResponse.Devices = append(listAndWatchResponse.Devices, device)
 		}
-		for _, listAndWatchListener := range n.listAndWatchListeners {
-			_ = listAndWatchListener.Send(listAndWatchResponse)
-		}
+		_ = s.Send(listAndWatchResponse)
 	})
 
 	<-s.Context().Done()
@@ -119,6 +113,8 @@ func (n *nsmgrDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.DeviceP
 				listAndWatchListeners = append(listAndWatchListeners, listAndWatchListener)
 			}
 		}
+		// Update list
+		n.listAndWatchListeners = listAndWatchListeners
 	})
 	return nil
 }
@@ -195,6 +191,9 @@ func (n *nsmgrDevicePlugin) resizeDevicePool() {
 		for _, d := range n.devices {
 			listAndWatchResponse.Devices = append(listAndWatchResponse.Devices, d)
 		}
+		if len(n.listAndWatchListeners) > 0 {
+			logrus.Infof("resize send devices: %v", len(listAndWatchResponse.Devices))
+		}
 		for _, listAndWatchListener := range n.listAndWatchListeners {
 			_ = listAndWatchListener.Send(listAndWatchResponse)
 		}
@@ -228,7 +227,7 @@ func (n *nsmgrDevicePlugin) Register() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	conn, err := grpc.DialContext(ctx, flags.Values.DeviceAPIRegistryServer, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.DialContext(ctx, "unix:"+flags.Values.DeviceAPIRegistryServer, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		return err
 	}

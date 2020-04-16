@@ -103,9 +103,23 @@ jobs:
     steps:
       - run: printenv
   docker:
-    name: Docker Build
+    name: Docker Build & Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - run: docker build .
-      - run: docker run --rm $(docker build -q --target test .)
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v1
+      with:
+        go-version: 1.13.4
+      - run: make docker
+  tests:
+    name: Docker Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v1
+      with:
+        go-version: 1.13.4
+          - name: Install go-header
+            run: make install-deps
+          - run: make spire-server
+          - run: make test

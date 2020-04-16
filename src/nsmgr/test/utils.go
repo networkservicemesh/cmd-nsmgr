@@ -2,7 +2,6 @@ package test
 
 import (
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 	"io/ioutil"
 	"os"
 	"path"
@@ -14,10 +13,6 @@ func TempFolder() string {
 	if err != nil {
 		logrus.Errorf("err: %v", err)
 	}
-	socketFile, _ := ioutil.TempFile(baseDir, "nsm_test")
-	_ = socketFile.Close()
-	_ = os.Remove(socketFile.Name())
-	unix.Umask(0077)
-	_ = os.MkdirAll(socketFile.Name(), os.ModeDir|os.ModePerm)
-	return socketFile.Name()
+	socketFile, _ := ioutil.TempDir(baseDir, "nsm_test")
+	return socketFile
 }

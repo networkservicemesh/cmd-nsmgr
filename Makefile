@@ -1,10 +1,16 @@
-.PHONY: build docker test docker-test
+.PHONY: build docker test docker-test install-deps
+
+install-deps:
+	go get gotest.tools/gotestsum
 
 dest_dir: dist
 	mkdir -p dist
 
 build: dest_dir
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./dist ./src/nsmgr
+
+test:
+	gotestsum --format short-verbose ./...
 
 docker: build
 	docker build --build-arg BUILD=false .

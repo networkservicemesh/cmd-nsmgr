@@ -56,17 +56,12 @@ var Defaults = &DefinedFlags{
 	Insecure:                true,
 	Name:                    "Unnamed",
 	DeviceAPIListenEndpoint: path.Join(pluginapi.DevicePluginPath, constants.KubeletServerSock),
-	DeviceAPIRegistryServer: "unix:" + pluginapi.KubeletSocket,
+	DeviceAPIRegistryServer: pluginapi.KubeletSocket,
 	DeviceAPIPluginPath:     pluginapi.DevicePluginPath,
 }
 
 // DefineFlags - redefine flags
-func DefineFlags(useDefault bool, defineF func(flags *DefinedFlags)) {
-	val := *Defaults
-	if !useDefault {
-		val = *Values
-	}
-	Values = &val
+func DefineFlags(defineF func(flags *DefinedFlags)) {
 	defineF(Values)
 }
 

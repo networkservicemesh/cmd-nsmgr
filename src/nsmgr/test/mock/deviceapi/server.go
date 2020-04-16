@@ -85,14 +85,16 @@ func (s *serverImpl) Register(ctx context.Context, request *pluginapi.RegisterRe
 			for {
 				evt, err := listApi.Recv()
 				if err != nil {
-					logrus.Errorf("err receive event %v", err)
+					if ctx.Err() == nil {
+						logrus.Errorf("err receive event %v", err)
+					}
 					return
 				}
 				entry.devices = evt.Devices
 				s.events <- &Event{
 					Kind:     EventUpdate,
 					Endpoint: entry.request.Endpoint,
-					Devices:  evt.Devices,
+					Devices:  entry.devices,
 				}
 			}
 		}()
@@ -103,12 +105,13 @@ func (s *serverImpl) Register(ctx context.Context, request *pluginapi.RegisterRe
 }
 
 //NewServer - created a mock kubelet server to perform testing.
-func NewServer(baseDir, socketFile string) Server {
+func NewServer(socketFile string) Server {
+	baseDir, _ := path.Split(socketFile)
 	return &serverImpl{
 		baseDir:    baseDir,
-		socketFile: path.Join(baseDir, socketFile),
+		socketFile: socketFile,
 		clients:    map[string]*clientEntry{},
-		events:     make(chan *Event),
+		events:     make(chan *Event, 100),
 	}
 }
 
