@@ -121,4 +121,5 @@ jobs:
       - name: Build spire temp docker image
         run: make spire-server
       - name: Run tests
-        run: make test
+        run: |
+          make test

@@ -1,26 +1,32 @@
-.PHONY: build docker test docker-test install-deps
+.PHONY: build docker test docker-test install-deps dest_dir
+
+GOPATH=$(shell go env GOPATH)
+GOTESTSUM=${GOPATH}/bin/gotestsum
+GOBUILD=go build
+ARCH=CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+DOCKER_BUILD=docker build
 
 install-deps:
 	go get gotest.tools/gotestsum
 
-dest_dir: dist
+dest_dir:
 	mkdir -p dist
 
 build: dest_dir
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./dist ./src/nsmgr
+	 ${ARCH} ${GOBUILD} -o ./dist ./src/nsmgr
 
-test:
-	gotestsum --format short-verbose ./...
+test: spire-server
+	${GOTESTSUM} --format short-verbose ./...
 
 docker: build
-	docker build --build-arg BUILD=false .
+	${DOCKER_BUILD} --build-arg BUILD=false .
 
 docker-build: dest_dir
-	docker build --build-arg BUILD=true . -t networkservicemesh/cmd-nsmgr
+	${DOCKER_BUILD} --build-arg BUILD=true . -t networkservicemesh/cmd-nsmgr
 
 spire-proxy: dest_dir
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./dist ./test/spire-proxy
+	${ARCH} ${GOBUILD} -o ./dist ./test/spire-proxy
 
 spire-server: dest_dir spire-proxy
-	docker build -f test/spire-server/Dockerfile . -t networkservicemesh/test-spire-server
+	${DOCKER_BUILD} -f test/spire-server/Dockerfile . -t networkservicemesh/test-spire-server
 

@@ -3,6 +3,7 @@ module github.com/networkservicemesh/cmd-nsmgr
 go 1.13
 
 require (
+	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0
@@ -21,7 +22,6 @@ require (
 	github.com/spf13/viper v1.6.2
 	github.com/spiffe/go-spiffe v0.0.0-20200115174642-4e401e3b85fe
 	github.com/stretchr/testify v1.4.0
-	golang.org/x/sys v0.0.0-20191022100944-742c48ecaeb7
 	golang.org/x/text v0.3.2
 	google.golang.org/grpc v1.28.0
 	k8s.io/kubelet v0.18.0
