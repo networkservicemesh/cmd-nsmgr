@@ -2,6 +2,13 @@ package test
 
 import (
 	"context"
+	"net/url"
+	"os"
+	"path"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/docker/go-connections/nat"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/constants"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/flags"
@@ -13,12 +20,6 @@ import (
 	"github.com/spiffe/go-spiffe/spiffe"
 	"github.com/stretchr/testify/require"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
-	"net/url"
-	"os"
-	"path"
-	"sync"
-	"testing"
-	"time"
 )
 
 type testSetup struct {

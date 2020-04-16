@@ -18,11 +18,12 @@ package flags
 
 import (
 	"fmt"
-	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/constants"
-	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 	"net/url"
 	"path"
 	"strings"
+
+	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/constants"
+	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

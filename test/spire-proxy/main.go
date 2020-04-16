@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"google.golang.org/grpc/stats"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"google.golang.org/grpc/stats"
 
 	"google.golang.org/grpc/metadata"
 
@@ -21,8 +22,7 @@ type spireProxy struct {
 }
 
 func newSpireProxy() (*spireProxy, error) {
-	return &spireProxy{
-	}, nil
+	return &spireProxy{}, nil
 }
 
 func (sp *spireProxy) Start(target string) error {

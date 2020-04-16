@@ -19,6 +19,7 @@ package cmd
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/flags"
 	"github.com/spf13/cobra"
 )

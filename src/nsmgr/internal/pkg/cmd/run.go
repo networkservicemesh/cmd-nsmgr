@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"context"
+
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/flags"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/manager"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"

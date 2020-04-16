@@ -3,14 +3,15 @@ package registry
 import (
 	"context"
 	"errors"
+	"net"
+	"net/url"
+	"os"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/google/uuid"
 	"github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/sdk/pkg/tools/serialize"
 	"google.golang.org/grpc"
-	"net"
-	"net/url"
-	"os"
 )
 
 type Server interface {

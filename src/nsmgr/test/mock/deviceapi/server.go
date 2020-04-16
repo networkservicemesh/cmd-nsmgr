@@ -2,13 +2,14 @@ package deviceapi
 
 import (
 	"context"
+	"net"
+	"os"
+	"path"
+
 	"github.com/networkservicemesh/sdk/pkg/tools/serialize"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
-	"net"
-	"os"
-	"path"
 )
 
 type EventType = uint8
@@ -98,7 +99,6 @@ func (s *serverImpl) Register(ctx context.Context, request *pluginapi.RegisterRe
 				}
 			}
 		}()
-
 	})
 
 	return &pluginapi.Empty{}, err

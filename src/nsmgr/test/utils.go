@@ -1,10 +1,11 @@
 package test
 
 import (
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"path"
+
+	"github.com/sirupsen/logrus"
 )
 
 func TempFolder() string {

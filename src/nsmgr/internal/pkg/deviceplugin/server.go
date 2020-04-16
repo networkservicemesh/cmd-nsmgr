@@ -19,6 +19,12 @@ package deviceplugin
 import (
 	"context"
 	"fmt"
+	"net"
+	"os"
+	"path"
+	"path/filepath"
+	"time"
+
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/constants"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/flags"
 	"github.com/networkservicemesh/sdk/pkg/tools/serialize"
@@ -26,11 +32,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
-	"net"
-	"os"
-	"path"
-	"path/filepath"
-	"time"
 )
 
 type NsmDevicePluginServer interface {

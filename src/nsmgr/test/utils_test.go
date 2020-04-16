@@ -1,9 +1,10 @@
 package test
 
 import (
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestTempFolder(t *testing.T) {

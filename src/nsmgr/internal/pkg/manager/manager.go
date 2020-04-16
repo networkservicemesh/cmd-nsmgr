@@ -2,6 +2,13 @@ package manager
 
 import (
 	"context"
+	"net"
+	"os"
+	"os/signal"
+	"path"
+	"syscall"
+	"time"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/constants"
 	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/deviceplugin"
@@ -12,12 +19,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/spiffe"
 	"google.golang.org/grpc"
-	"net"
-	"os"
-	"os/signal"
-	"path"
-	"syscall"
-	"time"
 )
 
 func RunNsmgr(ctx context.Context, values *flags.DefinedFlags) error {
@@ -139,7 +140,7 @@ func createWatcher(values *flags.DefinedFlags) (*fsnotify.Watcher, error) {
 		return nil, err
 	}
 
-	// Listen for kubelet device api register socket, we need to re-register in case this socket is deleted, created agains.
+	// Listen for kubelet device api register socket, we need to re-register in case this socket is deleted, created against.
 	err = watcher.Add(values.DeviceAPIPluginPath)
 	if err != nil {
 		_ = watcher.Close()
