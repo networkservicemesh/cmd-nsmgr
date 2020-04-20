@@ -126,7 +126,7 @@ func (n *nsmgrDevicePlugin) Allocate(ctx context.Context, reqs *pluginapi.Alloca
 		for _, deviceid := range req.GetDevicesIDs() {
 			_, ok := n.devices[deviceid]
 			if !ok {
-				return nil, fmt.Errorf("device id passed not found %v", deviceid)
+				return nil, errors.Errorf("device id passed not found %v", deviceid)
 			}
 			// Clean any memif files, or endpoint socket files.
 			// Connections will be closed automatically.
@@ -149,13 +149,11 @@ func (n *nsmgrDevicePlugin) Allocate(ctx context.Context, reqs *pluginapi.Alloca
 				constants.NsmServerSocketEnv: containerServerSocketFile(n.values, deviceid),
 				constants.NsmClientSocketEnv: containerClientSocketFile(n.values, deviceid),
 			}
-			if !n.values.Insecure {
-				mounts = append(mounts, &pluginapi.Mount{
-					ContainerPath: constants.SpireSocket,
-					HostPath:      constants.SpireSocket,
-					ReadOnly:      true,
-				})
-			}
+			mounts = append(mounts, &pluginapi.Mount{
+				ContainerPath: constants.SpireSocket,
+				HostPath:      constants.SpireSocket,
+				ReadOnly:      true,
+			})
 			containerResponse := &pluginapi.ContainerAllocateResponse{
 				Envs:   envs,
 				Mounts: mounts,

@@ -34,27 +34,38 @@ type testSetup struct {
 }
 
 func (s *testSetup) SetupSpire() {
-	s.spireContainer = s.dt.CreateContainer("test-spire", "networkservicemesh/test-spire-server", nil,
-		dockertest.ContainerConfig{
-			Privileged: true,
-			ExposedPorts: nat.PortSet{
-				"9099/tcp": {},
-			},
-			PortBindings: nat.PortMap{
-				"9099/tcp": []nat.PortBinding{
-					{
-						HostIP:   "0.0.0.0",
-						HostPort: "9099",
+	if s.dt != nil {
+		// We need to build a container
+		var err error
+		s.spireContainer, err = s.dt.CreateContainer("test-spire", "nsmgr-test-container",
+			[]string{"sh", "-c", "/bin/spire.sh && /bin/spire-proxy && tail -f /dev/null"},
+			dockertest.ContainerConfig{
+				Privileged: true,
+				ExposedPorts: nat.PortSet{
+					"9099/tcp": {},
+				},
+				PortBindings: nat.PortMap{
+					"9099/tcp": []nat.PortBinding{
+						{
+							HostIP:   "0.0.0.0",
+							HostPort: "9099",
+						},
 					},
 				},
-			},
-		})
-	s.spireContainer.Start()
-	s.spireContainer.LogWaitPattern("Spire Proxy ready...", dockertest.DockerTimeout)
+			})
+		require.Nil(s.t, err, "Please build test container to access spire-server `docker build . --target test -t nsmgr-test-container`")
+		err = s.spireContainer.Start()
+		require.Nil(s.t, err, "Please build test container to access spire-server `docker build . --target test -t nsmgr-test-container`")
+		s.spireContainer.LogWaitPattern("Spire Proxy ready...", dockertest.DockerTimeout)
 
-	s.values.Insecure = false
-	agentUrl, _ := url.Parse("tcp://127.0.0.1:9099")
-	s.values.SpiffeAgentURL = *agentUrl
+		agentUrl, _ := url.Parse("tcp://127.0.0.1:9099")
+		s.values.SpiffeAgentURL = *agentUrl
+	} else {
+		// We are inside docker env with tests, we just need to start spifie agent, and perform testing, no need for proxy.
+		// Spire are up and running already at default place
+		agentUrl, _ := url.Parse("unix:///tmp/agent.sock")
+		s.values.SpiffeAgentURL = *agentUrl
+	}
 
 	var err error
 	s.tlsPeer, err = spiffe.NewTLSPeer(spiffe.WithWorkloadAPIAddr(s.values.SpiffeAgentURL.String()))
@@ -62,18 +73,23 @@ func (s *testSetup) SetupSpire() {
 }
 
 func (s *testSetup) Start() {
-	s.dt = dockertest.NewDockerTest(s.t)
+	// if USE_DOCKER - is set,
+	if os.Getenv("NSM_FROM_DOCKER") != "true" {
+		// We are in dev environment
+		s.dt = dockertest.NewDockerTest(s.t)
+	}
 	s.baseDir = TempFolder()
 
 	// Update flags
 	s.values.BaseDir = s.baseDir
 	s.values.Name = "nsm-test"
-	s.values.Insecure = true
 	s.values.DeviceAPIPluginPath = s.baseDir
 }
 
 func (s *testSetup) Stop() {
-	s.dt.Stop()
+	if s.dt != nil {
+		s.dt.Stop()
+	}
 	_ = os.RemoveAll(s.baseDir)
 
 	if s.registryServer != nil {

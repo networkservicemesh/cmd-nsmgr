@@ -107,19 +107,7 @@ jobs:
       - uses: actions/setup-go@v1
         with:
           go-version: 1.13.4
-      - run: make docker
-  tests:
-    name: Docker Build & Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.13.4
-      - name: Install deps
-        run: make install-deps
-      - name: Build spire temp docker image
-        run: make spire-server
+      - name: Build container
+        run: docker build .
       - name: Run tests
-        run: |
-          make test
+        run: docker run $(docker build -q . --target test)

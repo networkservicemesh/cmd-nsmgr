@@ -44,8 +44,7 @@ type DefinedFlags struct {
 	RegistryURL    url.URL
 
 	// Some environment variables
-	Insecure bool
-	Name     string
+	Name string
 
 	DeviceAPIListenEndpoint string
 	DeviceAPIRegistryServer string
@@ -54,7 +53,6 @@ type DefinedFlags struct {
 
 // Defaults - default values loaded from environment
 var Defaults = &DefinedFlags{
-	Insecure:                true,
 	Name:                    "Unnamed",
 	DeviceAPIListenEndpoint: path.Join(pluginapi.DevicePluginPath, constants.KubeletServerSock),
 	DeviceAPIRegistryServer: pluginapi.KubeletSocket,
@@ -100,7 +98,6 @@ func ViperFlags(flags *pflag.FlagSet) {
 }
 
 func ViperLoadFlags() {
-	Defaults.Insecure = viper.GetBool("insecure")
 	Defaults.Name = viper.GetString("name")
 }
 

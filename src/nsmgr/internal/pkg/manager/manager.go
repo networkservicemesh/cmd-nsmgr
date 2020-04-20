@@ -44,20 +44,17 @@ func RunNsmgr(ctx context.Context, values *flags.DefinedFlags) error {
 	ctx, cancelFunc = context.WithCancel(ctx)
 	defer cancelFunc()
 
-	var spiffieTlsPeer *spiffe.TLSPeer
-	span.LogValue("Insecure", values.Insecure)
-	if !values.Insecure {
-		spiffieTlsPeer, err = spiffe.NewTLSPeer(spiffe.WithWorkloadAPIAddr(values.SpiffeAgentURL.String()))
-		if err != nil {
-			span.LogErrorf("failed to create new spiffe TLS Peer %v", err)
-			return err
-		}
+	var spiffieTLSPeer *spiffe.TLSPeer
+	spiffieTLSPeer, err = spiffe.NewTLSPeer(spiffe.WithWorkloadAPIAddr(values.SpiffeAgentURL.String()))
+	if err != nil {
+		span.LogErrorf("failed to create new spiffe TLS Peer %v", err)
+		return err
 	}
 
 	regSpan := spanhelper.FromContext(ctx, "dial-registry")
 	defer regSpan.Finish()
 	var registryCC grpc.ClientConnInterface
-	registryCC, err = grpc.DialContext(regSpan.Context(), values.RegistryURL.String(), grpcoptions.WithSpiffe(spiffieTlsPeer, 15*time.Second), grpc.WithBlock())
+	registryCC, err = grpc.DialContext(regSpan.Context(), values.RegistryURL.String(), grpcoptions.WithSpiffe(spiffieTLSPeer, 15*time.Second), grpc.WithBlock())
 
 	if err != nil {
 		regSpan.LogErrorf("failed to dial NSE Registry", err)
@@ -77,7 +74,7 @@ func RunNsmgr(ctx context.Context, values *flags.DefinedFlags) error {
 		return err
 	}
 
-	grpcServer := grpc.NewServer(grpcoptions.SpiffeCreds(spiffieTlsPeer, 15*time.Second))
+	grpcServer := grpc.NewServer(grpcoptions.SpiffeCreds(spiffieTLSPeer, 15*time.Second))
 	mgr.Register(grpcServer)
 
 	go func() {

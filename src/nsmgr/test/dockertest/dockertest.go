@@ -50,16 +50,15 @@ const (
 // DockerTest - a base interface for docker setup of vpp agent configuration
 type DockerTest interface {
 	// Pull required image from docker hub
-	PullImage(name string)
 	Stop()
 	GetContainers() []DockerContainer
-	CreateContainer(name, containerImage string, cmdLine []string, config ContainerConfig) DockerContainer
+	CreateContainer(name, containerImage string, cmdLine []string, config ContainerConfig) (DockerContainer, error)
 }
 
 // DockerContainer - represent a container running inside docker
 type DockerContainer interface {
 	// Start - start a container
-	Start()
+	Start() error
 	// Stop - stop a container
 	Stop()
 	// GetStatus - retrieve a container status
@@ -300,18 +299,19 @@ func (d *dockerTest) stopContainer(name, containerID string) {
 	logrus.Infof("container stopped %v %v", name, containerID)
 }
 
-func (d *dockerContainer) Start() {
+func (d *dockerContainer) Start() error {
 	ctx, cancel := context.WithTimeout(context.Background(), DockerTimeout)
 	defer cancel()
 	err := d.d.connection.ContainerStart(ctx, d.containerID, types.ContainerStartOptions{})
-	require.Nil(d.d.t, err)
+	if err != nil {
+		return err
+	}
 
 	info := types.ContainerJSON{}
 	for {
 		select {
 		case <-ctx.Done():
-			require.Failf(d.d.t, "Failed to wait for container running state %v %v", d.name, d.containerID)
-			return
+			return errors.Errorf("Failed to wait for container running state %v %v", d.name, d.containerID)
 		case <-time.After(10 * time.Millisecond):
 		}
 		info = d.GetStatus()
@@ -326,6 +326,7 @@ func (d *dockerContainer) Start() {
 	require.Equal(d.d.t, true, info.State.Running)
 
 	logrus.Infof("Status of container creation: %v", d.GetLogs())
+	return nil
 }
 
 func (d *dockerContainer) GetLogs() string {
@@ -369,25 +370,6 @@ func conf(name string, options ...string) string {
 	return result
 }
 
-func (d *dockerTest) PullImage(name string) {
-	logrus.Infof("Fetching docker image: %v", name)
-	ctx, cancel := context.WithTimeout(context.Background(), DockerTimeout)
-	defer cancel()
-	reader, err := d.connection.ImagePull(ctx, name, types.ImagePullOptions{})
-	require.Nil(d.t, err)
-	s := ""
-	out := bytes.NewBufferString(s)
-	_, _ = io.Copy(out, reader)
-	_ = reader.Close()
-	s = out.String()
-	ss := strings.Split(s, "\n")
-	s = ""
-	for _, sss := range ss {
-		s += strings.TrimSpace(sss) + "\n"
-	}
-	logrus.Infof("Docker output:\n %v", s)
-}
-
 // ContainerConfig - some configurations for container created.
 type ContainerConfig struct {
 	Privileged   bool
@@ -395,7 +377,7 @@ type ContainerConfig struct {
 	ExposedPorts nat.PortSet
 }
 
-func (d *dockerTest) CreateContainer(name, containerImage string, cmdLine []string, config ContainerConfig) DockerContainer {
+func (d *dockerTest) CreateContainer(name, containerImage string, cmdLine []string, config ContainerConfig) (DockerContainer, error) {
 	logrus.Infof("Creating docker container: %v %v", name, cmdLine)
 	ctx, cancel := context.WithTimeout(context.Background(), DockerTimeout)
 	defer cancel()
@@ -405,13 +387,16 @@ func (d *dockerTest) CreateContainer(name, containerImage string, cmdLine []stri
 	containers, err := d.connection.ContainerList(ctx, types.ContainerListOptions{
 		Filters: filterValue,
 	})
-	require.Nil(d.t, err)
+	if err != nil {
+		return nil, err
+	}
 
 	for i := 0; i < len(containers); i++ {
 		d.stopContainer(name, containers[i].ID)
 	}
 
-	resp, err := d.connection.ContainerCreate(ctx, &container.Config{
+	var resp container.ContainerCreateCreatedBody
+	resp, err = d.connection.ContainerCreate(ctx, &container.Config{
 		Image:        containerImage,
 		Cmd:          cmdLine,
 		ExposedPorts: config.ExposedPorts,
@@ -423,8 +408,10 @@ func (d *dockerTest) CreateContainer(name, containerImage string, cmdLine []stri
 		PidMode:      "host",
 		PortBindings: config.PortBindings,
 	}, nil, "")
+	if err != nil {
+		return nil, err
+	}
 	require.NotNil(d.t, resp)
-	require.Nil(d.t, err)
 	result := &dockerContainer{
 		name:        name,
 		d:           d,
@@ -433,7 +420,7 @@ func (d *dockerTest) CreateContainer(name, containerImage string, cmdLine []stri
 
 	d.containers = append(d.containers, result)
 
-	return result
+	return result, nil
 }
 
 // NewDockerTest - creates a docker testing helper infrastructure
