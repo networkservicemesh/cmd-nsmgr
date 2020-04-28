@@ -110,4 +110,4 @@ jobs:
       - name: Build container
         run: docker build .
       - name: Run tests
-        run: docker run $(docker build -q . --target test)
+        run: docker run --rm $(docker build -q . --target test)

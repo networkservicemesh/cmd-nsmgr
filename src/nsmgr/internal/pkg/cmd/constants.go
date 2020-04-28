@@ -14,29 +14,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package constants - a most of constant definitions.
 package cmd
 
-import (
-	"fmt"
+const (
+	envPrefix = "NSM"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
+	// ListenOnURLKey - key for flag for ListenOnURL
+	ListenOnTCPURLKey = "listen-on-tcp-url"
+	// ListenOnTCPURLPathDefault - default path for ListenOnURL
+	ListenOnTCPURLPathDefault = ":5001"
+	// ListenOnURLUsageDefault - default usage for ListenOnURL
+	ListenOnTCPURLUsageDefault = "TCP URL to listen for incoming networkservicemesh RPC calls"
+
+	NsmServerSocket        = "nsm.server.io.sock"
+	ListenOnURLPathDefault = "/var/lib/networkservicemesh/nsm/" + NsmServerSocket
 )
-
-func init() {
-	rootCmd.AddCommand(envCmd)
-	CobraCmdDefaults(envCmd)
-}
-
-var envCmd = &cobra.Command{
-	Use:   "env",
-	Short: "Dumps env for current forwarder settings suitable for evaling",
-	Long:  `Dumps env for current forwarder settings suitable for evaling`,
-	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Flags().VisitAll(func(f *pflag.Flag) {
-			if f.Value.Type() != "bool" {
-				fmt.Printf("%s=%q\n", KeyToEnvVariable(f.Name), f.Value.String())
-			}
-		})
-	},
-}

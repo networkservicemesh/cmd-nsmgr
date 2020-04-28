@@ -14,26 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package flags
+package cmd
 
 import (
 	"fmt"
+	"github.com/networkservicemesh/sdk/pkg/tools/flags"
 	"net/url"
-	"path"
 	"strings"
-
-	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/constants"
-	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-
-	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/values"
-)
-
-const (
-	envPrefix = "NSM"
 )
 
 // DefinedFlags - a set of flag values
@@ -46,17 +37,13 @@ type DefinedFlags struct {
 	// Some environment variables
 	Name string
 
-	DeviceAPIListenEndpoint string
-	DeviceAPIRegistryServer string
-	DeviceAPIPluginPath     string
+	// Listen on URL
+	ListenOnURL url.URL
 }
 
 // Defaults - default values loaded from environment
 var Defaults = &DefinedFlags{
-	Name:                    "Unnamed",
-	DeviceAPIListenEndpoint: path.Join(pluginapi.DevicePluginPath, constants.KubeletServerSock),
-	DeviceAPIRegistryServer: pluginapi.KubeletSocket,
-	DeviceAPIPluginPath:     pluginapi.DevicePluginPath,
+	Name: "Unnamed",
 }
 
 // CobraCmdDefaults - default flags for use in many different commands
@@ -75,16 +62,21 @@ func Flags(f *pflag.FlagSet) {
 		"BaseDir to hold all sockets and mechanism files.")
 
 	// SpiffeAgent To URL
-	spiffeAgentURLValue := values.NewGrpcURLValue(&Defaults.SpiffeAgentURL)
+	spiffeAgentURLValue := flags.NewURLValue(&Defaults.SpiffeAgentURL)
 	_ = spiffeAgentURLValue.Set("unix:///run/spire/sockets/agent.sock")
 	f.VarP(spiffeAgentURLValue, "spire-agent-url", "s",
 		"URL to Spiffe Agent")
 
 	// Registry URL
-	registryURLValue := values.NewGrpcURLValue(&Defaults.RegistryURL)
+	registryURLValue := flags.NewURLValue(&Defaults.RegistryURL)
 	_ = registryURLValue.Set("unix:///run/networkservicemesh/registry/registry.sock")
 	f.VarP(registryURLValue, "registry-url", "r",
 		"URL to Registry")
+
+	// Listen On URL
+	flags.URLVarP(f, &Defaults.ListenOnURL, flags.ListenOnURLKey, flags.ListenOnURLShortHand,
+		&url.URL{Scheme: flags.ListenOnURLSchemeDefault, Path: ListenOnURLPathDefault},
+		flags.ListenOnURLUsageDefault)
 }
 func ViperFlags(flags *pflag.FlagSet) {
 	Flags(flags)

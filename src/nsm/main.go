@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Cisco and/or its affiliates.
+// Copyright (c) 2020 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -14,31 +14,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package main - define a nsm helper build application.
 package main
 
 import (
-	"context"
-	"github.com/networkservicemesh/sdk/pkg/tools/log"
-	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
 	"github.com/sirupsen/logrus"
-	"os"
 
-	nested "github.com/antonfisher/nested-logrus-formatter"
-	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/cmd"
+	"github.com/networkservicemesh/cmd-nsmgr/src/nsm/internal/pkg/cmd"
 )
 
 func main() {
-	// Setup context to catch signals
-	ctx := signalctx.WithSignals(context.Background())
-
-	// Setup logging
-	logrus.SetFormatter(&nested.Formatter{})
-	logrus.SetLevel(logrus.TraceLevel)
-	ctx = log.WithField(ctx, "cmd", os.Args[:2])
-
-	// Execute command
-	err := cmd.ExecuteContext(ctx)
+	err := cmd.Execute()
 	if err != nil {
-		logrus.Fatalf("error executing rootCmd: %v", err)
+		logrus.Fatalf("error executing root command: %v", err)
 	}
 }

@@ -21,6 +21,9 @@ type Server interface {
 	Stop()
 	Start(options ...grpc.ServerOption) error
 	GetListenEndpointURI() url.URL
+
+	GetNSMChannel() chan *registry.NetworkServiceManager
+	GetEndpointChannel() chan *registry.NetworkServiceEndpoint
 }
 
 type serverImpl struct {
@@ -30,11 +33,21 @@ type serverImpl struct {
 	listener   net.Listener
 	endpoints  map[string]*registry.NSERegistration
 	managers   map[string]*registry.NetworkServiceManager
+
+	nsmChannel      chan *registry.NetworkServiceManager
+	endpointChannel chan *registry.NetworkServiceEndpoint
 }
 
 func (s *serverImpl) GetListenEndpointURI() url.URL {
 	result, _ := url.Parse("unix://" + s.socketFile)
 	return *result
+}
+
+func (s *serverImpl) GetNSMChannel() chan *registry.NetworkServiceManager {
+	return s.nsmChannel
+}
+func (s *serverImpl) GetEndpointChannel() chan *registry.NetworkServiceEndpoint {
+	return s.endpointChannel
 }
 
 func (s *serverImpl) RegisterNSM(_ context.Context, manager *registry.NetworkServiceManager) (*registry.NetworkServiceManager, error) {
@@ -71,8 +84,10 @@ func (s *serverImpl) RemoveNSE(ctx context.Context, request *registry.RemoveNSER
 //NewServer - created a mock kubelet server to perform testing.
 func NewServer(socketFile string) Server {
 	return &serverImpl{
-		socketFile: socketFile,
-		endpoints:  map[string]*registry.NSERegistration{},
+		socketFile:      socketFile,
+		endpoints:       map[string]*registry.NSERegistration{},
+		endpointChannel: make(chan *registry.NetworkServiceEndpoint),
+		nsmChannel:      make(chan *registry.NetworkServiceManager),
 	}
 }
 

@@ -14,31 +14,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+// Package cmd - cobra commands for forwarder
+package cmd
 
 import (
-	"context"
-	"github.com/networkservicemesh/sdk/pkg/tools/log"
-	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
-	"github.com/sirupsen/logrus"
-	"os"
-
-	nested "github.com/antonfisher/nested-logrus-formatter"
-	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/cmd"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	// Setup context to catch signals
-	ctx := signalctx.WithSignals(context.Background())
+var rootCmd = &cobra.Command{
+	Use:   "nsm",
+	Short: "nsm-cli perform various helper functions for Network Service Mesh",
+	Long: `
+		Provides Various helper functions for Network Service Mesh.
+	`,
+	Run: func(cmd *cobra.Command, args []string) {
+		_ = cmd.Usage()
+	},
+}
 
-	// Setup logging
-	logrus.SetFormatter(&nested.Formatter{})
-	logrus.SetLevel(logrus.TraceLevel)
-	ctx = log.WithField(ctx, "cmd", os.Args[:2])
-
-	// Execute command
-	err := cmd.ExecuteContext(ctx)
-	if err != nil {
-		logrus.Fatalf("error executing rootCmd: %v", err)
-	}
+// Execute - execute the command
+func Execute() error {
+	return rootCmd.Execute()
 }

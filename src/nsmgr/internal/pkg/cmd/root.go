@@ -19,30 +19,23 @@ package cmd
 
 import (
 	"context"
-
-	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/flags"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	flags.CobraCmdDefaults(rootCmd)
-	resetContext(context.Background())
-}
-
-func resetContext(ctx context.Context) {
-	// Cancel previous command
+	CobraCmdDefaults(rootCmd)
 }
 
 var rootCmd = &cobra.Command{
 	Use:   "nsmgr",
-	Short: "Provides Network Service Manager",
+	Short: "Provides Network Service Manager.",
 	Long:  `Provides Network Service Manager.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Usage()
 	},
 }
 
-// Execute - execute the command
-func Execute() error {
-	return rootCmd.Execute()
+// ExecuteContext - execute the command
+func ExecuteContext(ctx context.Context) error {
+	return rootCmd.ExecuteContext(ctx)
 }

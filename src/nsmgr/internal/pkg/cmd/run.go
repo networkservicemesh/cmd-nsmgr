@@ -19,8 +19,6 @@ package cmd
 import (
 	"context"
 
-	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/flags"
-	"github.com/networkservicemesh/cmd-nsmgr/src/nsmgr/internal/pkg/manager"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
 	"github.com/opentracing/opentracing-go"
@@ -29,7 +27,7 @@ import (
 
 func init() {
 	rootCmd.AddCommand(runCmd)
-	flags.CobraCmdDefaults(runCmd)
+	CobraCmdDefaults(runCmd)
 }
 
 var runCmd = &cobra.Command{
@@ -48,6 +46,6 @@ var runCmd = &cobra.Command{
 		}
 		cmdSpan := spanhelper.NewSpanHelper(context.Background(), span, "nsmgr-start")
 		defer cmdSpan.Finish()
-		return manager.RunNsmgr(cmdSpan.Context(), flags.Defaults)
+		return RunNsmgr(cmdSpan.Context(), Defaults)
 	},
 }
