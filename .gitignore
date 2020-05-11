@@ -16,4 +16,6 @@
 
 .idea/
 junit/
-dist
+scripts/spire
+local/
+dist/

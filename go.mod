@@ -3,30 +3,29 @@ module github.com/networkservicemesh/cmd-nsmgr
 go 1.13
 
 require (
-	github.com/antonfisher/nested-logrus-formatter v1.0.3
-	github.com/fsnotify/fsnotify v1.4.9
-	github.com/golang/protobuf v1.4.0
-	github.com/google/uuid v1.1.1
-	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
-	github.com/mitchellh/mapstructure v1.2.2 // indirect
-	github.com/networkservicemesh/api v0.0.0-20200420181128-698cb005ceb0
-	github.com/networkservicemesh/sdk v0.0.0-20200422232854-9d7f9901207d
-	github.com/open-policy-agent/opa v0.16.1
+	github.com/OneOfOne/xxhash v1.2.8 // indirect
+	github.com/antonfisher/nested-logrus-formatter v1.1.0
+	github.com/golang/protobuf v1.4.2
+	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/networkservicemesh/api v0.0.0-20200525170518-89690ec70489
+	github.com/networkservicemesh/sdk v0.0.0-20200608144052-dc54c99cbe0e
+	github.com/open-policy-agent/opa v0.20.5
 	github.com/opentracing/opentracing-go v1.1.0
-	github.com/pelletier/go-toml v1.7.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/sirupsen/logrus v1.5.0
-	github.com/spf13/afero v1.2.2 // indirect
-	github.com/spf13/cast v1.3.1 // indirect
-	github.com/spf13/cobra v1.0.0
-	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.6.3
-	github.com/spiffe/go-spiffe v1.0.0
-	github.com/stretchr/testify v1.5.1
-	golang.org/x/net v0.0.0-20200425230154-ff2c4b7c35a0 // indirect
-	golang.org/x/sys v0.0.0-20200427175716-29b57079015a // indirect
-	google.golang.org/genproto v0.0.0-20200424135956-bca184e23272 // indirect
+	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
+	github.com/sirupsen/logrus v1.6.0
+	github.com/spiffe/go-spiffe v0.0.0-20200115174642-4e401e3b85fe // indirect
+	github.com/spiffe/go-spiffe/v2 v2.0.0-alpha.4.0.20200528145730-dc11d0c74e85
+	github.com/stretchr/testify v1.6.0
+	github.com/uber/jaeger-client-go v2.23.1+incompatible // indirect
+	go.uber.org/atomic v1.6.0 // indirect
+	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9 // indirect
+	golang.org/x/net v0.0.0-20200602114024-627f9648deb9 // indirect
+	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
+	golang.org/x/text v0.3.2 // indirect
+	google.golang.org/genproto v0.0.0-20200604104852-0b0486081ffb // indirect
 	google.golang.org/grpc v1.29.1
-	gopkg.in/ini.v1 v1.55.0 // indirect
+	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
+	gopkg.in/yaml.v2 v2.3.0 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200603094226-e3079894b1e8 // indirect
 )

@@ -8,3 +8,4 @@ LICENSE
 staticcheck.conf
 .license
 .github
+scripts/spire
