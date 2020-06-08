@@ -18,10 +18,11 @@
 package registry
 
 import (
-	"fmt"
-	"net"
+	"context"
 	"net/url"
 	"os"
+
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
 	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/registry/memory"
@@ -34,91 +35,79 @@ import (
 
 // Server mock registry server interface
 type Server interface {
-	registry.NsmRegistryServer
-	registry.NetworkServiceRegistryServer
+	NetworkServiceRegistryServer() registry.NetworkServiceRegistryServer
+	NetworkServiceEndpointRegistryServer() registry.NetworkServiceEndpointRegistryServer
 
 	Stop()
 	Start(options ...grpc.ServerOption) error
 	GetListenEndpointURI() *url.URL
-
-	GetNSMChannel() chan *registry.NetworkServiceManager
-	GetEndpointChannel() chan *registry.NetworkServiceEndpoint
 }
 
 type serverImpl struct {
 	listenOn *url.URL
 	server   *grpc.Server
 	executor serialize.Executor
-	listener net.Listener
 
-	registry.NetworkServiceRegistryServer
-	registry.NsmRegistryServer
+	nsServer  registry.NetworkServiceRegistryServer
+	nseServer registry.NetworkServiceEndpointRegistryServer
 
-	nsmChannel      chan *registry.NetworkServiceManager
-	endpointChannel chan *registry.NetworkServiceEndpoint
-	storage         *memory.Storage
-	registry.NetworkServiceDiscoveryServer
+	ctx     context.Context
+	cancel  context.CancelFunc
+	errChan <-chan error
+}
+
+func (s *serverImpl) NetworkServiceRegistryServer() registry.NetworkServiceRegistryServer {
+	return s.nsServer
+}
+
+func (s *serverImpl) NetworkServiceEndpointRegistryServer() registry.NetworkServiceEndpointRegistryServer {
+	return s.nseServer
 }
 
 func (s *serverImpl) GetListenEndpointURI() *url.URL {
-	addr := s.listener.Addr()
-	if tcpAddr, ok := addr.(*net.TCPAddr); ok {
-		if tcpAddr.IP.IsUnspecified() {
-			return &url.URL{Scheme: addr.Network(), Path: fmt.Sprintf("127.0.0.1:%v", tcpAddr.Port)}
-		}
-	}
-	return &url.URL{Scheme: addr.Network(), Path: addr.String()}
-}
-
-func (s *serverImpl) GetNSMChannel() chan *registry.NetworkServiceManager {
-	return s.nsmChannel
-}
-func (s *serverImpl) GetEndpointChannel() chan *registry.NetworkServiceEndpoint {
-	return s.endpointChannel
+	return s.listenOn
 }
 
 // NewServer - created a mock kubelet server to perform testing.
 func NewServer(name string, listenOn *url.URL) Server {
-	storage := &memory.Storage{}
 	result := &serverImpl{
-		listenOn:        listenOn,
-		storage:         storage,
-		executor:        serialize.Executor{},
-		nsmChannel:      make(chan *registry.NetworkServiceManager, 100),
-		endpointChannel: make(chan *registry.NetworkServiceEndpoint, 100),
+		listenOn: listenOn,
+		executor: serialize.Executor{},
 	}
-	result.NetworkServiceRegistryServer = chain.NewNetworkServiceRegistryServer(memory.NewNetworkServiceRegistryServer(storage), newNSEChainServer(result.endpointChannel))
-	result.NsmRegistryServer = chain.NewNSMRegistryServer(memory.NewNSMRegistryServer(name, storage), newNSMChainServer(result.nsmChannel))
-	result.NetworkServiceDiscoveryServer = memory.NewNetworkServiceDiscoveryServer(storage)
+	result.nsServer = chain.NewNetworkServiceRegistryServer(memory.NewNetworkServiceRegistryServer())
+	result.nseServer = chain.NewNetworkServiceEndpointRegistryServer(memory.NewNetworkServiceEndpointRegistryServer())
 	return result
 }
 
 func (s *serverImpl) Start(options ...grpc.ServerOption) error {
 	s.server = grpc.NewServer(options...)
 
-	registry.RegisterNetworkServiceRegistryServer(s.server, s)
-	registry.RegisterNsmRegistryServer(s.server, s)
-	registry.RegisterNetworkServiceDiscoveryServer(s.server, s)
+	registry.RegisterNetworkServiceRegistryServer(s.server, s.NetworkServiceRegistryServer())
+	registry.RegisterNetworkServiceEndpointRegistryServer(s.server, s.NetworkServiceEndpointRegistryServer())
 
 	if s.listenOn.Scheme == "unix" {
 		_ = os.Remove(s.listenOn.Path)
 	}
-	var err error
-	s.listener, err = net.Listen(s.listenOn.Scheme, s.listenOn.Path)
-	if err != nil {
-		return err
-	}
+
+	s.ctx, s.cancel = context.WithCancel(context.Background())
+
+	s.errChan = grpcutils.ListenAndServe(s.ctx, s.listenOn, s.server)
+
 	logrus.Infof("Mock registry host at: %v", s.GetListenEndpointURI().String())
 	go func() {
-		e := s.server.Serve(s.listener)
-		if e != nil {
-			logrus.Errorf("err: %v", e)
+		select {
+		case <-s.ctx.Done():
+			break
+		case e := <-s.errChan:
+			if e != nil {
+				logrus.Errorf("err: %v", e)
+			}
 		}
 	}()
 	return nil
 }
 
 func (s *serverImpl) Stop() {
+	s.cancel()
 	s.server.Stop()
-	_ = s.listener.Close()
 }

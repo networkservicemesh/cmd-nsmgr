@@ -17,37 +17,18 @@
 package test
 
 import (
-	"fmt"
-	"math/rand"
 	"net"
-	"time"
+	"os"
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/peer"
 )
 
-func (f *NsmgrTestSuite) TestNSMgrRegister() {
-	t := f.T()
-	setup := newSetup(t)
-	rand.Seed(time.Now().Unix())
-	setup.configuration.Name = fmt.Sprintf("nsm-%v", rand.Uint64())
-	setup.Start()
-	defer setup.Stop()
-
-	select {
-	case nsmReg := <-setup.registryServer.GetNSMChannel():
-		require.NotNil(t, nsmReg)
-		logrus.Infof("Registration received %v", nsmReg)
-		require.Equal(t, "ready", nsmReg.State)
-		require.Equal(t, setup.configuration.Name, nsmReg.Name)
-	case <-time.After(10 * time.Second):
-		require.Failf(t, "timeout waiting for NSM registration", "")
-	}
-}
-
 func (f *NsmgrTestSuite) TestNSMgrEndpointRegister() {
+	grpclog.SetLoggerV2(grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stdout))
+
 	t := f.T()
 	setup := newSetup(t)
 	setup.Start()
@@ -64,16 +45,10 @@ func (f *NsmgrTestSuite) TestNSMgrEndpointRegister() {
 
 	regClient := setup.NewRegistryClient(regCtx)
 
-	regRespose, err := regClient.RegisterNSE(regCtx, &registry.NSERegistration{
-		NetworkService: &registry.NetworkService{
-			Name: "my-network-service",
-		},
-		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
-			Name: "my-nse",
-		},
+	regResponse, err := regClient.Register(regCtx, &registry.NetworkServiceEndpoint{
+		Name: "my-nse",
 	})
 	require.Nil(t, err)
-	require.NotNil(t, regRespose)
-	require.Equal(t, setup.configuration.Name, regRespose.NetworkServiceManager.Name)
-	require.Equal(t, "ready", regRespose.NetworkServiceManager.State)
+	require.NotNil(t, regResponse)
+	require.Equal(t, setup.configuration.ListenOn[0].String(), regResponse.Url)
 }

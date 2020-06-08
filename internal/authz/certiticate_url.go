@@ -25,37 +25,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/peer"
 )
-
-// CertificateURL - return URL from certificate
-func CertificateURL(ctx context.Context) (*url.URL, error) {
-	p, ok := peer.FromContext(ctx)
-	if !ok {
-		err := errors.New("no peer is provided")
-		logrus.Error(err)
-		return nil, err
-	}
-	tlsInfo, tlsOk := p.AuthInfo.(credentials.TLSInfo)
-	if !tlsOk {
-		err := errors.New("no TLS info is provided")
-		logrus.Error(err)
-		return nil, err
-	}
-	if len(tlsInfo.State.PeerCertificates) == 0 {
-		err := errors.New("no TLS peer certificate info is provided")
-		logrus.Error(err)
-		return nil, err
-	}
-	uris := tlsInfo.State.PeerCertificates[0].URIs
-	if len(uris) == 0 {
-		err := errors.New("no TLS peer certificate info is provided")
-		logrus.Error(err)
-		return nil, err
-	}
-	return uris[0], nil
-}
 
 // IdentityByEndpointID - return identity by :endpoint-id
 func IdentityByEndpointID(ctx context.Context) (string, error) {
@@ -70,5 +40,5 @@ func IdentityByEndpointID(ctx context.Context) (string, error) {
 
 // WithCallbackEndpointID - pass with :endpoint-id a correct endpoint identity.
 func WithCallbackEndpointID(ctx context.Context, endpoint *url.URL) context.Context {
-	return metadata.AppendToOutgoingContext(ctx, "endpoint-id", endpoint.Path)
+	return metadata.AppendToOutgoingContext(ctx, "endpoint-id", endpoint.String())
 }

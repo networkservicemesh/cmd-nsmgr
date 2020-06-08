@@ -24,13 +24,13 @@ import (
 	"os"
 	"path"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
+
 	"github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
-	grpcutils2 "github.com/networkservicemesh/cmd-nsmgr/internal/grpcutils"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
 	mockReg "github.com/networkservicemesh/cmd-nsmgr/test/mock/registry"
 	"github.com/sirupsen/logrus"
@@ -107,7 +107,7 @@ func (s *testSetup) init() {
 	// All TCP public IP as default address
 	s.configuration.ListenOn = append(s.configuration.ListenOn, &url.URL{
 		Scheme: "tcp",
-		Path:   "127.0.0.1:0",
+		Host:   "127.0.0.1:0",
 	})
 
 	var err error
@@ -123,7 +123,7 @@ func (s *testSetup) init() {
 	logrus.Infof("SVID: %q", s.SVid.ID)
 
 	// Setup registry
-	s.registryServer = mockReg.NewServer(s.configuration.Name, &url.URL{Scheme: "tcp", Path: "127.0.0.1:0"})
+	s.registryServer = mockReg.NewServer(s.configuration.Name, &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"})
 
 	require.Nil(s.t, s.registryServer.Start(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(s.Source, s.Source, tlsconfig.AuthorizeAny())))))
 
@@ -132,12 +132,8 @@ func (s *testSetup) init() {
 
 func (s *testSetup) Start() {
 	s.init()
-	// Start
-	var wg sync.WaitGroup
-	wg.Add(1)
 
 	go func() {
-		defer wg.Done()
 		e := manager.RunNsmgr(s.ctx, s.configuration)
 		require.Nil(s.t, e)
 	}()
@@ -147,6 +143,8 @@ func (s *testSetup) Start() {
 }
 
 func (s *testSetup) Stop() {
+	_ = s.Source.Close()
+
 	s.cancel()
 	_ = os.RemoveAll(s.baseDir)
 
@@ -180,16 +178,16 @@ func (s *testSetup) CheckHeal() {
 }
 
 func (s *testSetup) newClient(ctx context.Context) grpc.ClientConnInterface {
-	clientCtx, clientCancelFunc := context.WithTimeout(ctx, 10000*time.Second)
+	clientCtx, clientCancelFunc := context.WithTimeout(ctx, 5*time.Second)
 	defer clientCancelFunc()
-	grpcCC, err := grpc.DialContext(clientCtx, grpcutils2.URLToTarget(s.configuration.ListenOn[0]),
+	grpcCC, err := grpc.DialContext(clientCtx, grpcutils.URLToTarget(s.configuration.ListenOn[0]),
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(s.Source, s.Source, tlsconfig.AuthorizeAny()))),
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 	require.Nil(s.t, err)
 	return grpcCC
 }
 
-func (s *testSetup) NewRegistryClient(ctx context.Context) registry.NetworkServiceRegistryClient {
+func (s *testSetup) NewRegistryClient(ctx context.Context) registry.NetworkServiceEndpointRegistryClient {
 	grpcCC := s.newClient(ctx)
-	return registry.NewNetworkServiceRegistryClient(grpcCC)
+	return registry.NewNetworkServiceEndpointRegistryClient(grpcCC)
 }

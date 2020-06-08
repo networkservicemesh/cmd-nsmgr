@@ -19,16 +19,21 @@ package manager
 
 import (
 	"context"
+	"net/url"
 	"os"
 	"path"
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
+	"github.com/networkservicemesh/sdk/pkg/tools/callback"
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
+
 	"github.com/networkservicemesh/api/pkg/api/registry"
-	"github.com/networkservicemesh/cmd-nsmgr/internal/chains/nsmgr"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
-	"github.com/networkservicemesh/cmd-nsmgr/internal/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
 	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
@@ -77,11 +82,9 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	starttime := time.Now()
 
 	m := &manager{
-		ctx:           ctx,
 		configuration: configuration,
 		span:          spanhelper.FromContext(ctx, "start"),
 	}
-	defer m.Stop()
 
 	// Update context
 	m.ctx = signalctx.WithSignals(m.span.Context())
@@ -99,17 +102,27 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		return err
 	}
 
-	nsmMgr := &registry.NetworkServiceManager{
-		Name:  configuration.Name,
-		State: "ready",
-		Url:   configuration.ListenOn[0].String(),
+	nsmMgr := &registry.NetworkServiceEndpoint{
+		Name: configuration.Name + "#nsmgr",
+		Url:  configuration.ListenOn[0].String(),
 	}
+
+	// Construct callback server
+	callbackServer := callback.NewServer(authz.IdentityByEndpointID)
+
+	// Callback parameter factory
+	callbackDialFactory := connect.WithDialOptionFactory(
+		func(ctx context.Context, clientURL *url.URL) []grpc.DialOption {
+			return []grpc.DialOption{callback.WithCallbackDialer(callbackServer, clientURL.String()), grpc.WithInsecure()}
+		},
+	)
 
 	// Construct NSMgr chain
 	m.mgr = nsmgr.NewServer(
 		nsmMgr,
+		authorize.NewServer(),
 		spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime),
-		m.registryCC)
+		m.registryCC, callbackDialFactory)
 
 	// If we Listen on Unix socket for local connections we need to be sure folder are exist
 	createListenFolders(configuration)
@@ -117,22 +130,14 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	server := grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny()))))
 	m.mgr.Register(server)
 
-	var wg sync.WaitGroup
+	// Register callback serve to grpc.
+	callback.RegisterCallbackServiceServer(server, callbackServer)
+
 	// Create GRPC server
-	m.startServers(nsmMgr, &wg, server)
-
-	wg.Wait() // Wait for GRPC is ready before registering
-
-	// Register Network service manager.
-	wg.Add(1)
-	regChan := registerNSM(ctx, m.mgr, nsmMgr, configuration, &wg)
-	wg.Wait()
+	m.startServers(nsmMgr, server)
 
 	log.Entry(ctx).Infof("Startup completed in %v", time.Since(starttime))
-
-	// Wait until context is done, or error is received.
-	waitErrChan(ctx, regChan, m, configuration)
-
+	<-ctx.Done()
 	return nil
 }
 
@@ -155,40 +160,6 @@ func waitErrChan(ctx context.Context, errChan <-chan error, m *manager, configur
 	}
 }
 
-// registerNSM - perform a periodic registation of current nsm to update validity interval.
-func registerNSM(ctx context.Context, nsmRegistry registry.NsmRegistryServer, nsmMgr *registry.NetworkServiceManager, configuration *config.Config, wg *sync.WaitGroup) <-chan error {
-	errChan := make(chan error, 10)
-	initComplete := false
-	go func() {
-		for {
-			aliveTime := configuration.RegistrationInterval
-			expireTime := time.Now().Add(aliveTime + aliveTime/5) // We add 20% threshold
-
-			// Set expire time to proper value
-			nsmMgr.ExpirationTime = &timestamp.Timestamp{
-				Seconds: expireTime.Unix(),
-			}
-
-			mgr, err := nsmRegistry.RegisterNSM(ctx, nsmMgr)
-			if err != nil {
-				logrus.Errorf("Failed to register NSM %v", err)
-				errChan <- err
-				close(errChan)
-				wg.Done()
-				return
-			}
-			if !initComplete {
-				wg.Done()
-				initComplete = true
-				logrus.Infof("Registered to registry %v", mgr)
-			} else {
-				logrus.Infof("Update alive registry %v", mgr)
-			}
-			time.Sleep(aliveTime)
-		}
-	}()
-	return errChan
-}
 func (m *manager) connectRegistry() (err error) {
 	regSpan := spanhelper.FromContext(m.ctx, "dial-registry")
 	defer regSpan.Finish()
@@ -205,19 +176,16 @@ func (m *manager) connectRegistry() (err error) {
 	return
 }
 
-func (m *manager) startServers(nsmMgr *registry.NetworkServiceManager, wg *sync.WaitGroup, server *grpc.Server) {
+func (m *manager) startServers(nsmMgr *registry.NetworkServiceEndpoint, server *grpc.Server) {
+	var wg sync.WaitGroup
 	for _, u := range m.configuration.ListenOn {
-		listenURL := u
+		listenURL := *u
 		wg.Add(1)
-
-		// In case of Public IP we need to add +1 to wait before registation will be done.
-		if listenURL.Scheme == tcpSchema {
-			nsmMgr.Url = listenURL.String()
-		}
 
 		go func() {
 			// Create a required number of servers
-			errChan := grpcutils.ListenAndServe(m.ctx, listenURL, server)
+			errChan := grpcutils.ListenAndServe(m.ctx, &listenURL, server)
+			logrus.Infof("NSMGR Listening on: %v", listenURL.String())
 			if listenURL.Scheme == tcpSchema {
 				nsmMgr.Url = listenURL.String()
 			}
@@ -227,4 +195,5 @@ func (m *manager) startServers(nsmMgr *registry.NetworkServiceManager, wg *sync.
 			waitErrChan(m.ctx, errChan, m, m.configuration)
 		}()
 	}
+	wg.Wait()
 }

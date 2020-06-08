@@ -62,10 +62,10 @@ When you run 'nsmgr' you will see an early line of output that tells you:
 
 If you follow those instructions when running the Docker container:
 ```bash
-docker run -e DLV_LISTEN_FORWARDER=:50000 -p 50000:50000 --rm $(docker build -q --target test .)
+docker run -e DLV_LISTEN_NSMGR=:50000 -p 50000:50000 --rm $(docker build -q --target test .)
 ```
 
-```-e DLV_LISTEN_FORWARDER=:50000``` tells docker to set the environment variable DLV_LISTEN_FORWARDER to :50000 telling
+```-e DLV_LISTEN_NSMGR=:50000``` tells docker to set the environment variable DLV_LISTEN_NSMGR to :50000 telling
 dlv to listen on port 50000.
 
 ```-p 50000:50000``` tells docker to forward port 50000 in the container to port 50000 in the host.  From there, you can
@@ -74,7 +74,7 @@ just connect dlv using your favorite IDE and debug nsmgr.
 ## Debugging the tests and the nsmgr
 
 ```bash
-docker run -e DLV_LISTEN_FORWARDER=:50000 -p 40000:40000 -p 50000:50000 --rm $(docker build -q --target debug .)
+docker run --rm -p 40000:40000 $(docker build -q --target debug .)
 ```
 
 Please note, the tests **start** the nsmgr, so until you connect to port 40000 with your debugger and walk the tests

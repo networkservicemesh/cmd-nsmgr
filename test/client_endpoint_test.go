@@ -22,12 +22,13 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/networkservicemesh/sdk/pkg/networkservice/utils/testnse"
+
 	"github.com/networkservicemesh/api/pkg/api/networkservice"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/cls"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 	"github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
-	"github.com/networkservicemesh/cmd-nsmgr/test/mock/callbacknse"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/client"
 	"github.com/networkservicemesh/sdk/pkg/tools/callback"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
@@ -47,27 +48,29 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 	nsmClient := setup.newClient(ctx)
 
 	nseURL := &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}
-	nseServer, nseErr := callbacknse.NewNSE(ctx, nseURL, func(request *networkservice.NetworkServiceRequest) {
+	nseServer, nseGrpc, nseErr := testnse.NewNSE(ctx, nseURL, func(request *networkservice.NetworkServiceRequest) {
 		// Update labels to be sure all code is executed.
 		request.GetConnection().Labels = map[string]string{"perform": "ok"}
 	})
+	require.NotNil(t, nseServer)
 	require.NotNil(t, nseErr)
+	require.NotNil(t, nseGrpc)
+	defer func() { nseGrpc.Stop() }()
 
 	// Serve callbacks
-	callbackClient := callback.NewClient(nsmClient, nseServer)
+	callbackClient := callback.NewClient(nsmClient, nseGrpc)
 	// Construct context to pass identity to server.
 	callbackClient.Serve(authz.WithCallbackEndpointID(ctx, nseURL))
 
-	regClient := registry.NewNetworkServiceRegistryClient(nsmClient)
+	nsRegClient := registry.NewNetworkServiceRegistryClient(nsmClient)
+	regClient := registry.NewNetworkServiceEndpointRegistryClient(nsmClient)
+	ns, _ := nsRegClient.Register(context.Background(), &registry.NetworkService{
+		Name: "my-service",
+	})
 
-	nseReg, err := regClient.RegisterNSE(context.Background(), &registry.NSERegistration{
-		NetworkService: &registry.NetworkService{
-			Name: "my-service",
-		},
-		NetworkServiceEndpoint: &registry.NetworkServiceEndpoint{
-			NetworkServiceName: "my-service",
-			Url:                "callback:" + nseURL.Path,
-		},
+	nseReg, err := regClient.Register(context.Background(), &registry.NetworkServiceEndpoint{
+		NetworkServiceName: []string{ns.Name},
+		Url:                "callback:" + nseURL.String(),
 	})
 
 	require.Nil(t, err)
@@ -90,4 +93,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 	require.Nil(t, err)
 	require.NotNil(t, connection)
 	require.Equal(t, 2, len(connection.Path.PathSegments))
+
+	_, err = cl.Close(ctx, connection)
+	require.Nil(t, err)
 }
