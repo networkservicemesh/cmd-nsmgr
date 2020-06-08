@@ -1,36 +1,81 @@
-# Cmd NsMgr build scenarious.
+# Intro
 
- 1. Only docker
-    
-    1.1 `docker build .` - perform build inside docker, no local SDK references are allowed.
-        Inside: nsm build
-    
-    1.2 `docker run $(docker build -q . --target test) - perform execution of tests.
-        Inside: nsm build
-                nsm test (will check if inside docker will just run all tests found in /bin/*.test)
-    
-    1.3 `docker build . --build-arg BUILD=false` - build container, but copy binaries from local build ./dist folder.
-        - require local compile of nsmgr with `nsm build` or
-        Inside:
-            docker copy 
-        
-    1.4 `docker run $(docker build -q . --target test --build-arg BUILD=false)` - perform execution of tests, copy test binaries from local host.
-        Inside:
-            docker copy
-            nsm test (will check if inside docker will just run all tests found in /bin/*.test)
-                will start spire server and run all tests
-    1.5 Debug container inside docker
-    
- 2. Using nsm cli tool.
-    
-    2.1 `nsm build`  - just build all stuff and docker conatiner
-    
-    2.2 `nsm test` - perform a build and run tests inside docker.
-        
-        2.2.1 Debug of tests
-            `nsm test --debug`, will run tests with dlv to debug contaniner
-           
-        2.2.2 Debug of selectd test
-            `nsm test --debug --test nsmgr-test.test` - will run debug only for one package, will filter other packages.
+This repo contains 'nsmgr' that implements the Network Service Manager.
 
-               
+This README will provide directions for building, testing, and debugging that container.
+
+# Build
+
+## Build nsmgr binary locally
+
+You can build the locally by executing
+
+```bash
+go build ./...
+```
+
+## Build Docker container
+
+You can build the docker container by running:
+
+```bash
+docker build .
+```
+
+# Testing
+
+## Testing Docker container
+
+Testing is run via a Docker container.  To run testing run:
+
+```bash
+docker run --rm $(docker build -q --target test .)
+```
+
+# Debugging
+
+## Debugging the tests
+If you wish to debug the test code itself, that can be acheived by running:
+
+```bash
+docker run --rm -p 40000:40000 $(docker build -q --target debug .)
+```
+
+This will result in the tests running under dlv.  Connecting your debugger to localhost:40000 will allow you to debug.
+
+```bash
+-p 40000:40000
+```
+forwards port 40000 in the container to localhost:40000 where you can attach with your debugger.
+
+```bash
+--target debug
+```
+
+Runs the debug target, which is just like the test target, but starts tests with dlv listening on port 40000 inside the container.
+
+## Debugging the nsmgr
+
+When you run 'nsmgr' you will see an early line of output that tells you:
+
+```Setting env variable DLV_LISTEN_FORWARDER to a valid dlv '--listen' value will cause the dlv debugger to execute this binary and listen as directed.```
+
+If you follow those instructions when running the Docker container:
+```bash
+docker run -e DLV_LISTEN_FORWARDER=:50000 -p 50000:50000 --rm $(docker build -q --target test .)
+```
+
+```-e DLV_LISTEN_FORWARDER=:50000``` tells docker to set the environment variable DLV_LISTEN_FORWARDER to :50000 telling
+dlv to listen on port 50000.
+
+```-p 50000:50000``` tells docker to forward port 50000 in the container to port 50000 in the host.  From there, you can
+just connect dlv using your favorite IDE and debug nsmgr.
+
+## Debugging the tests and the nsmgr
+
+```bash
+docker run -e DLV_LISTEN_FORWARDER=:50000 -p 40000:40000 -p 50000:50000 --rm $(docker build -q --target debug .)
+```
+
+Please note, the tests **start** the nsmgr, so until you connect to port 40000 with your debugger and walk the tests
+through to the point of running nsmgr, you will not be able to attach a debugger on port 50000 to the nsmgr.
