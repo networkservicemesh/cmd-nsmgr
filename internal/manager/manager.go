@@ -19,7 +19,6 @@ package manager
 
 import (
 	"context"
-	"net/url"
 	"os"
 	"path"
 	"sync"
@@ -28,7 +27,6 @@ import (
 	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
 	"github.com/networkservicemesh/sdk/pkg/tools/callback"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
@@ -57,10 +55,13 @@ type manager struct {
 	mgr           nsmgr.Nsmgr
 	source        *workloadapi.X509Source
 	svid          *x509svid.SVID
+	server        *grpc.Server
 }
 
 func (m *manager) Stop() {
 	m.cancelFunc()
+	m.server.Stop()
+	_ = m.source.Close()
 }
 
 func (m *manager) initSecurity() (err error) {
@@ -110,34 +111,34 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	// Construct callback server
 	callbackServer := callback.NewServer(authz.IdentityByEndpointID)
 
-	// Callback parameter factory
-	callbackDialFactory := connect.WithDialOptionFactory(
-		func(ctx context.Context, clientURL *url.URL) []grpc.DialOption {
-			return []grpc.DialOption{callback.WithCallbackDialer(callbackServer, clientURL.String()), grpc.WithInsecure()}
-		},
-	)
-
 	// Construct NSMgr chain
 	m.mgr = nsmgr.NewServer(
 		nsmMgr,
 		authorize.NewServer(),
 		spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime),
-		m.registryCC, callbackDialFactory)
+		m.registryCC, callbackServer.WithCallbackDialer(),
+
+		// Default client security call options
+		grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny()))),
+		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 
 	// If we Listen on Unix socket for local connections we need to be sure folder are exist
 	createListenFolders(configuration)
 
-	server := grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny()))))
-	m.mgr.Register(server)
+	m.server = grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny()))))
+	m.mgr.Register(m.server)
 
 	// Register callback serve to grpc.
-	callback.RegisterCallbackServiceServer(server, callbackServer)
+	callback.RegisterCallbackServiceServer(m.server, callbackServer)
 
 	// Create GRPC server
-	m.startServers(nsmMgr, server)
+	m.startServers(nsmMgr, m.server)
 
 	log.Entry(ctx).Infof("Startup completed in %v", time.Since(starttime))
 	<-ctx.Done()
+
+	// If we here we need to call Stop
+	m.Stop()
 	return nil
 }
 

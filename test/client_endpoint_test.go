@@ -22,6 +22,10 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+
 	"github.com/networkservicemesh/sdk/pkg/networkservice/utils/testnse"
 
 	"github.com/networkservicemesh/api/pkg/api/networkservice"
@@ -38,10 +42,10 @@ import (
 // Check endpoint registration and Client request to it with callback
 func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 	t := f.T()
+	// TODO: check with defer goleak.VerifyNone(t)
 	setup := newSetup(t)
 	setup.Start()
 	defer setup.Stop()
-
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
 	defer cancel()
 
@@ -51,7 +55,8 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 	nseServer, nseGrpc, nseErr := testnse.NewNSE(ctx, nseURL, func(request *networkservice.NetworkServiceRequest) {
 		// Update labels to be sure all code is executed.
 		request.GetConnection().Labels = map[string]string{"perform": "ok"}
-	})
+	}, grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
+
 	require.NotNil(t, nseServer)
 	require.NotNil(t, nseErr)
 	require.NotNil(t, nseGrpc)
@@ -69,8 +74,8 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 	})
 
 	nseReg, err := regClient.Register(context.Background(), &registry.NetworkServiceEndpoint{
-		NetworkServiceName: []string{ns.Name},
-		Url:                "callback:" + nseURL.String(),
+		NetworkServiceNames: []string{ns.Name},
+		Url:                 "callback:" + nseURL.String(),
 	})
 
 	require.Nil(t, err)
