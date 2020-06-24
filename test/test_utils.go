@@ -23,7 +23,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"strings"
 	"testing"
 	"time"
 
@@ -55,28 +54,6 @@ func TempFolder() string {
 	return socketFile
 }
 
-// IsDocker - tells we are running from inside docker or other container.
-func IsDocker() bool {
-	return isDockerFileExists() || isDockerHasCGroup()
-}
-
-func isDockerFileExists() bool {
-	_, err := os.Stat("/.dockerenv")
-	if err != nil {
-		return false
-	}
-	return os.IsExist(err)
-}
-
-func isDockerHasCGroup() bool {
-	content, err := ioutil.ReadFile("/proc/self/cgroup")
-	if err != nil {
-		return false
-	}
-	text := string(content)
-	return strings.Contains(text, "docker") || strings.Contains(text, "lxc")
-}
-
 type testSetup struct {
 	baseDir        string
 	t              *testing.T
@@ -89,7 +66,7 @@ type testSetup struct {
 }
 
 const (
-	setupTimeout = 150000 * time.Second
+	setupTimeout = 15 * time.Second
 )
 
 func (s *testSetup) init() {
@@ -158,8 +135,7 @@ func newSetup(t *testing.T) *testSetup {
 	setup := &testSetup{
 		t: t,
 		configuration: &config.Config{
-			Name:                 "test-nsm2",
-			RegistrationInterval: 5 * time.Minute,
+			Name: "test-nsm2",
 		},
 	}
 	return setup

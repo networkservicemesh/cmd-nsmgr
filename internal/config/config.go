@@ -18,18 +18,14 @@
 package config
 
 import (
-	"net"
 	"net/url"
 	"time"
 )
 
 // Config - configuration for cmd-nsmgr
 type Config struct {
-	Name                 string        `default:"nmgr" desc:"Name of Network service manager"`
-	BaseDir              string        `default:"./" desc:"base directory" split_words:"true"`
-	TunnelIP             net.IP        `desc:"IP to use for tunnels" split_words:"true"`
-	ListenOn             []*url.URL    `default:"[unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to listen on. tcp:// one will be used a public to register NSM" split_words:"true"`
-	RegistryURL          *url.URL      `default:"tcp://localhost:5001" desc:"A NSE registry url to use" split_words:"true"`
-	MaxTokenLifetime     time.Duration `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
-	RegistrationInterval time.Duration `default:"5m"  desc:"registration interval" split_words:"true"`
+	Name             string        `default:"nmgr" desc:"Name of Network service manager"`
+	ListenOn         []*url.URL    `default:"[unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to listen on. tcp:// one will be used a public to register NSM" split_words:"true"`
+	RegistryURL      *url.URL      `default:"tcp://localhost:5001" desc:"A NSE registry url to use" split_words:"true"`
+	MaxTokenLifetime time.Duration `default:"24h" desc:"maximum lifetime of tokens" split_words:"true"`
 }

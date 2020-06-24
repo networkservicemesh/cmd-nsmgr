@@ -1,5 +1,6 @@
 Dockerfile
 .gitignore
+!*.go
 .go-header.yaml
 .golangci.yml
 .yamllint.yml
@@ -8,4 +9,5 @@ LICENSE
 staticcheck.conf
 .license
 .github
-scripts/spire
+!local/
+**/.git

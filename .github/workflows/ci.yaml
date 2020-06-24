@@ -99,15 +99,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: printenv
-  docker:
-    name: Docker Build & Test
+  gogenerate:
+    name: gogenerate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v1
         with:
           go-version: 1.13.4
-      - name: Build container
-        run: docker build .
-      - name: Run tests
-        run: docker run --rm $(docker build -q . --target test)
+      - name: Generate files
+        run: go generate ./...
+      - name: Check for changes in generated code
+        run: |
+          git diff -- internal/imports/imports.go || ( echo "Rerun go generate ./... locally and resubmit" && false )
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - run: docker build .
+      - run: docker run --rm $(docker build -q --target test .)
+  automerge:
+    name: automerge
+    runs-on: ubuntu-latest
+    needs:
+      - docker
+    if: github.actor == 'nsmbot' && github.base_ref == 'master' && github.event_name == 'pull_request'
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v2
+      - name: Fetch master
+        run: |
+          git remote -v
+          git fetch --depth=1 origin master
+      - name: Only allow go.mod and go.sum changes
+        run: |
+          find . -type f ! -name 'go.mod' ! -name 'go.sum' -exec git diff --exit-code origin/master -- {} +
+      - name: Automerge nsmbot PR
+        uses: ridedott/merge-me-action@master
+        with:
+          GITHUB_LOGIN: nsmbot
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
