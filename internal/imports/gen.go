@@ -16,5 +16,5 @@
 
 package imports
 
-//go:generate bash -c "cd $(mktemp -d) && GO111MODULE=on go get github.com/edwarnicke/imports-gen@v1.0.0"
+//go:generate bash -c "cd $(mktemp -d) && GO111MODULE=on go get github.com/edwarnicke/imports-gen@v1.0.1"
 //go:generate ${GOPATH}/bin/imports-gen
