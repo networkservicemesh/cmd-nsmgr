@@ -1,0 +1,13 @@
+Dockerfile
+.gitignore
+!*.go
+.go-header.yaml
+.golangci.yml
+.yamllint.yml
+*.md
+LICENSE
+staticcheck.conf
+.license
+.github
+!local/
+**/.git
