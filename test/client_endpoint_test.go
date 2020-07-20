@@ -22,11 +22,14 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/setextracontext"
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
+
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-
-	"github.com/networkservicemesh/sdk/pkg/networkservice/utils/testnse"
 
 	"github.com/networkservicemesh/api/pkg/api/networkservice"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/cls"
@@ -38,6 +41,13 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/stretchr/testify/require"
 )
+
+func serve(ctx context.Context, listenOn *url.URL, e endpoint.Endpoint, opt ...grpc.ServerOption) (<-chan error, *grpc.Server) {
+	server := grpc.NewServer(opt...)
+	e.Register(server)
+
+	return grpcutils.ListenAndServe(ctx, listenOn, server), server
+}
 
 // Check endpoint registration and Client request to it with callback
 func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
@@ -52,18 +62,16 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 	nsmClient := setup.newClient(ctx)
 
 	nseURL := &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}
-	nseServer, nseGrpc, nseErr := testnse.NewNSE(ctx, nseURL, func(request *networkservice.NetworkServiceRequest) {
-		// Update labels to be sure all code is executed.
-		request.GetConnection().Labels = map[string]string{"perform": "ok"}
-	}, grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
 
-	require.NotNil(t, nseServer)
+	nseErr, nseGRPC := serve(ctx, nseURL,
+		endpoint.NewServer("nse", authorize.NewServer(), spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime), setextracontext.NewServer(map[string]string{"perform": "ok"})),
+		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
+
 	require.NotNil(t, nseErr)
-	require.NotNil(t, nseGrpc)
-	defer func() { nseGrpc.Stop() }()
+	require.NotNil(t, nseGRPC)
 
 	// Serve callbacks
-	callbackClient := callback.NewClient(nsmClient, nseGrpc)
+	callbackClient := callback.NewClient(nsmClient, nseGRPC)
 	// Construct context to pass identity to server.
 	callbackClient.Serve(authz.WithCallbackEndpointID(ctx, nseURL))
 
@@ -97,7 +105,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, connection)
-	require.Equal(t, 2, len(connection.Path.PathSegments))
+	require.Equal(t, 3, len(connection.Path.PathSegments))
 
 	_, err = cl.Close(ctx, connection)
 	require.Nil(t, err)
