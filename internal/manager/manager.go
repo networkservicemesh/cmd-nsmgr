@@ -112,7 +112,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	callbackServer := callback.NewServer(authz.IdentityByEndpointID)
 
 	// Construct NSMgr chain
-	m.mgr = nsmgr.NewServer(
+	m.mgr = nsmgr.NewServer(m.ctx,
 		nsmMgr,
 		authorize.NewServer(),
 		spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime),
