@@ -64,7 +64,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 	nseURL := &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}
 
 	nseErr, nseGRPC := serve(ctx, nseURL,
-		endpoint.NewServer("nse", authorize.NewServer(), spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime), setextracontext.NewServer(map[string]string{"perform": "ok"})),
+		endpoint.NewServer(ctx, "nse", authorize.NewServer(), spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime), setextracontext.NewServer(map[string]string{"perform": "ok"})),
 		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
 
 	require.NotNil(t, nseErr)
