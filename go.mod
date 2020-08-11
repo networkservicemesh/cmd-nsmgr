@@ -8,7 +8,7 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/api v0.0.0-20200804023023-3a49928a16bf
-	github.com/networkservicemesh/sdk v0.0.0-20200810190729-0d41343aaefe
+	github.com/networkservicemesh/sdk v0.0.0-20200811161528-91530849b841
 	github.com/open-policy-agent/opa v0.22.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
