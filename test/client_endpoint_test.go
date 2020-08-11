@@ -20,7 +20,17 @@ package test
 import (
 	"context"
 	"net/url"
+	"testing"
 	"time"
+
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/clienturl"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/core/adapters"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/interpose"
+	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
+	"github.com/networkservicemesh/sdk/pkg/tools/addressof"
+	"github.com/networkservicemesh/sdk/pkg/tools/token"
+	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
@@ -47,6 +57,33 @@ func serve(ctx context.Context, listenOn *url.URL, e endpoint.Endpoint, opt ...g
 	e.Register(server)
 
 	return grpcutils.ListenAndServe(ctx, listenOn, server), server
+}
+
+type myEndpouint struct {
+	endpoint.Endpoint
+}
+
+// NewCrossNSE construct a new Cross connect test NSE
+func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGenerator token.GeneratorFunc, clientDialOptions ...grpc.DialOption) endpoint.Endpoint {
+	var crossNSe = &myEndpouint{}
+	crossNSe.Endpoint = endpoint.NewServer(ctx,
+		name,
+		authorize.NewServer(),
+		tokenGenerator,
+		// Statically set the url we use to the unix file socket for the NSMgr
+		clienturl.NewServer(connectTo),
+		connect.NewServer(
+			ctx,
+			client.NewClientFactory(
+				name,
+				// What to call onHeal
+				addressof.NetworkServiceClient(adapters.NewServerToClient(crossNSe)),
+				tokenGenerator,
+			),
+			clientDialOptions...,
+		),
+	)
+	return crossNSe
 }
 
 // Check endpoint registration and Client request to it with callback
@@ -85,9 +122,10 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 		NetworkServiceNames: []string{ns.Name},
 		Url:                 "callback:" + nseURL.String(),
 	})
-
 	require.Nil(t, err)
 	require.NotNil(t, nseReg)
+
+	f.registerCrossNSE(ctx, setup, regClient, t)
 
 	cl := client.NewClient(context.Background(), "nsc-1", nil, spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime), nsmClient)
 
@@ -105,8 +143,27 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, connection)
-	require.Equal(t, 3, len(connection.Path.PathSegments))
+	require.Equal(t, 5, len(connection.Path.PathSegments))
 
 	_, err = cl.Close(ctx, connection)
+	require.Nil(t, err)
+}
+
+func (f *NsmgrTestSuite) registerCrossNSE(ctx context.Context, setup *testSetup, regClient registry.NetworkServiceEndpointRegistryClient, t *testing.T) {
+	// Serve Cross Connect NSE
+	crossNSEURL := &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}
+	endpoint.Serve(ctx, crossNSEURL,
+		newCrossNSE(ctx, "cross-nse", setup.configuration.ListenOn[0], spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime),
+			grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))),
+			grpc.WithDefaultCallOptions(grpc.WaitForReady(true))),
+		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
+	logrus.Infof("Cross NSE listenON: %v", crossNSEURL.String())
+
+	// Register Cross NSE
+	crossRegClient := chain.NewNetworkServiceEndpointRegistryClient(interpose.NewNetworkServiceEndpointRegistryClient(), regClient)
+	_, err := crossRegClient.Register(context.Background(), &registry.NetworkServiceEndpoint{
+		Url:  crossNSEURL.String(),
+		Name: "cross-nse",
+	})
 	require.Nil(t, err)
 }

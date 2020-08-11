@@ -33,7 +33,6 @@ import (
 	"github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
-	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
 	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/sirupsen/logrus"
@@ -86,9 +85,6 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		configuration: configuration,
 		span:          spanhelper.FromContext(ctx, "start"),
 	}
-
-	// Update context
-	m.ctx = signalctx.WithSignals(m.span.Context())
 
 	// Context to use for all things started in main
 	m.ctx, m.cancelFunc = context.WithCancel(ctx)

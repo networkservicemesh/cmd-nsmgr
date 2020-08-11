@@ -18,17 +18,13 @@ package test
 
 import (
 	"net"
-	"os"
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/peer"
 )
 
 func (f *NsmgrTestSuite) TestNSMgrEndpointRegister() {
-	grpclog.SetLoggerV2(grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stdout))
-
 	t := f.T()
 	setup := newSetup(t)
 	setup.Start()
