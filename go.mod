@@ -7,8 +7,8 @@ require (
 	github.com/antonfisher/nested-logrus-formatter v1.1.0
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/networkservicemesh/api v0.0.0-20200812231733-f1f676b02d57
-	github.com/networkservicemesh/sdk v0.0.0-20200813163741-59c990ce6c2c
+	github.com/networkservicemesh/api v0.0.0-20200813164503-9585b38e6772
+	github.com/networkservicemesh/sdk v0.0.0-20200813164918-9768fc445a57
 	github.com/open-policy-agent/opa v0.22.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
