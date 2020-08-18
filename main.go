@@ -22,14 +22,15 @@ import (
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/opentracing/opentracing-go"
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
 	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
-	"github.com/opentracing/opentracing-go"
-	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -37,7 +38,7 @@ func main() {
 	// Setup logging
 	logrus.SetFormatter(&nested.Formatter{})
 	logrus.SetLevel(logrus.TraceLevel)
-	ctx := log.WithField(signalctx.WithSignals(context.Background()), "cmd", os.Args[:2])
+	ctx := log.WithField(signalctx.WithSignals(context.Background()), "cmd", os.Args[:1])
 
 	var span opentracing.Span
 	// Enable Jaeger

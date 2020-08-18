@@ -28,10 +28,6 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
-	"github.com/networkservicemesh/api/pkg/api/registry"
-	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
-	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
-	mockReg "github.com/networkservicemesh/cmd-nsmgr/test/mock/registry"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
@@ -41,6 +37,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/health/grpc_health_v1"
+
+	"github.com/networkservicemesh/api/pkg/api/registry"
+	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
+	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
+	mockReg "github.com/networkservicemesh/cmd-nsmgr/test/mock/registry"
 )
 
 // TempFolder creates a temporary folder for testing purposes.
@@ -75,14 +76,14 @@ func (s *testSetup) init() {
 	s.baseDir = TempFolder()
 
 	// Configure ListenOnURL
-	s.configuration.ListenOn = []*url.URL{{
+	s.configuration.ListenOn = []url.URL{{
 		Scheme: "unix",
 		Path:   path.Join(s.baseDir, "nsm.server.sock"),
 	},
 	}
 
 	// All TCP public IP as default address
-	s.configuration.ListenOn = append(s.configuration.ListenOn, &url.URL{
+	s.configuration.ListenOn = append(s.configuration.ListenOn, url.URL{
 		Scheme: "tcp",
 		Host:   "127.0.0.1:0",
 	})
@@ -104,7 +105,7 @@ func (s *testSetup) init() {
 
 	require.Nil(s.t, s.registryServer.Start(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(s.Source, s.Source, tlsconfig.AuthorizeAny())))))
 
-	s.configuration.RegistryURL = s.registryServer.GetListenEndpointURI()
+	s.configuration.RegistryURL = *s.registryServer.GetListenEndpointURI()
 }
 
 func (s *testSetup) Start() {
@@ -156,7 +157,7 @@ func (s *testSetup) CheckHeal() {
 func (s *testSetup) newClient(ctx context.Context) grpc.ClientConnInterface {
 	clientCtx, clientCancelFunc := context.WithTimeout(ctx, 5*time.Second)
 	defer clientCancelFunc()
-	grpcCC, err := grpc.DialContext(clientCtx, grpcutils.URLToTarget(s.configuration.ListenOn[0]),
+	grpcCC, err := grpc.DialContext(clientCtx, grpcutils.URLToTarget(&s.configuration.ListenOn[0]),
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(s.Source, s.Source, tlsconfig.AuthorizeAny()))),
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 	require.Nil(s.t, err)

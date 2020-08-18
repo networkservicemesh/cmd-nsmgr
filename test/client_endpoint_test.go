@@ -23,6 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/clienturl"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/core/adapters"
@@ -30,7 +32,6 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/tools/addressof"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
-	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
@@ -41,6 +42,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/networkservicemesh/api/pkg/api/networkservice"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/cls"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
@@ -49,7 +52,6 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/client"
 	"github.com/networkservicemesh/sdk/pkg/tools/callback"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
-	"github.com/stretchr/testify/require"
 )
 
 func serve(ctx context.Context, listenOn *url.URL, e endpoint.Endpoint, opt ...grpc.ServerOption) (<-chan error, *grpc.Server) {
@@ -153,7 +155,7 @@ func (f *NsmgrTestSuite) registerCrossNSE(ctx context.Context, setup *testSetup,
 	// Serve Cross Connect NSE
 	crossNSEURL := &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}
 	endpoint.Serve(ctx, crossNSEURL,
-		newCrossNSE(ctx, "cross-nse", setup.configuration.ListenOn[0], spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime),
+		newCrossNSE(ctx, "cross-nse", &setup.configuration.ListenOn[0], spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime),
 			grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))),
 			grpc.WithDefaultCallOptions(grpc.WaitForReady(true))),
 		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))

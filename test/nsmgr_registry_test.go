@@ -19,9 +19,10 @@ package test
 import (
 	"net"
 
-	"github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/peer"
+
+	"github.com/networkservicemesh/api/pkg/api/registry"
 )
 
 func (f *NsmgrTestSuite) TestNSMgrEndpointRegister() {
