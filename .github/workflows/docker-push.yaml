@@ -1,0 +1,30 @@
+---
+name: push
+on:
+  push:
+    branches:
+      - master
+jobs:
+  pushImage:
+    name: Push docker image
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      DOCKER_USER: ${{ secrets.DOCKER_LOGIN }}
+      TAG: master
+      ORG: networkservicemeshci
+      CGO_ENABLED: 0
+      NAME: ${{ github.event.repository.name }}
+    if: github.repository != 'networkservicemesh/cmd-template'
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.13.4
+      - name: Build ${NAME} image
+        run: docker build . -t "${ORG}/${NAME}:${TAG}" --target runtime
+      - name: Push ${NAME} image
+        run: |
+          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+          docker push "${ORG}/${NAME}:${TAG}"
+          docker image rm "${ORG}/${NAME}:${TAG}"
