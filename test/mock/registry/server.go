@@ -24,13 +24,15 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/registry/memory"
-	"github.com/sirupsen/logrus"
+
+	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/sdk/pkg/tools/serialize"
-	"google.golang.org/grpc"
 )
 
 // Server mock registry server interface

@@ -30,20 +30,23 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/callback"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
-	"github.com/networkservicemesh/api/pkg/api/registry"
-	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
-	"github.com/networkservicemesh/sdk/pkg/tools/log"
-	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
-	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/networkservicemesh/api/pkg/api/registry"
+	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
+	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 )
 
-const tcpSchema = "tcp"
+const (
+	tcpSchema = "tcp"
+)
 
 type manager struct {
 	ctx           context.Context
@@ -130,16 +133,19 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	// Create GRPC server
 	m.startServers(nsmMgr, m.server)
 
-	log.Entry(ctx).Infof("Startup completed in %v", time.Since(starttime))
-	<-ctx.Done()
+	log.Entry(m.ctx).Infof("Startup completed in %v", time.Since(starttime))
+	starttime = time.Now()
+	<-m.ctx.Done()
 
+	log.Entry(m.ctx).Infof("Exit requested. Uptime: %v", time.Since(starttime))
 	// If we here we need to call Stop
 	m.Stop()
 	return nil
 }
 
 func createListenFolders(configuration *config.Config) {
-	for _, u := range configuration.ListenOn {
+	for i := 0; i < len(configuration.ListenOn); i++ {
+		u := &configuration.ListenOn[i]
 		if u.Scheme == "unix" {
 			nsmDir, _ := path.Split(u.Path)
 			_ = os.MkdirAll(nsmDir, os.ModeDir|os.ModePerm)
@@ -147,13 +153,13 @@ func createListenFolders(configuration *config.Config) {
 	}
 }
 
-func waitErrChan(ctx context.Context, errChan <-chan error, m *manager, configuration *config.Config) {
+func waitErrChan(ctx context.Context, errChan <-chan error, m *manager) {
 	select {
 	case <-ctx.Done():
 	case err := <-errChan:
 		// We need to cal cancel global context, since it could be multiple context of this kind
 		m.cancelFunc()
-		log.Entry(ctx).Warnf("failed to serve on %q: %+v", &configuration.ListenOn, err)
+		log.Entry(ctx).Warnf("failed to serve: %v", err)
 	}
 }
 
@@ -166,7 +172,7 @@ func (m *manager) connectRegistry() (err error) {
 	defer cancel()
 
 	logrus.Infof("NSM: Connecting to NSE registry %v", m.configuration.RegistryURL.String())
-	m.registryCC, err = grpc.DialContext(ctx, grpcutils.URLToTarget(m.configuration.RegistryURL), creds, grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
+	m.registryCC, err = grpc.DialContext(ctx, grpcutils.URLToTarget(&m.configuration.RegistryURL), creds, grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 	if err != nil {
 		regSpan.LogErrorf("failed to dial NSE NsmgrRegistry: %v", err)
 	}
@@ -175,13 +181,13 @@ func (m *manager) connectRegistry() (err error) {
 
 func (m *manager) startServers(nsmMgr *registry.NetworkServiceEndpoint, server *grpc.Server) {
 	var wg sync.WaitGroup
-	for _, u := range m.configuration.ListenOn {
-		listenURL := *u
+	for i := 0; i < len(m.configuration.ListenOn); i++ {
+		listenURL := &m.configuration.ListenOn[i]
 		wg.Add(1)
 
 		go func() {
 			// Create a required number of servers
-			errChan := grpcutils.ListenAndServe(m.ctx, &listenURL, server)
+			errChan := grpcutils.ListenAndServe(m.ctx, listenURL, server)
 			logrus.Infof("NSMGR Listening on: %v", listenURL.String())
 			if listenURL.Scheme == tcpSchema {
 				nsmMgr.Url = listenURL.String()
@@ -189,7 +195,7 @@ func (m *manager) startServers(nsmMgr *registry.NetworkServiceEndpoint, server *
 			// For public schemas we need to perform registation of nsmgr into registry.
 			wg.Done()
 
-			waitErrChan(m.ctx, errChan, m, m.configuration)
+			waitErrChan(m.ctx, errChan, m)
 		}()
 	}
 	wg.Wait()
