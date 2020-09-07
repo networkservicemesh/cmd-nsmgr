@@ -56,6 +56,11 @@ jobs:
           git diff cmd_template/master -R | git apply
           git add $(git ls-tree --name-only -r cmd_template/master | grep ".*\.yml\|.*\.yaml\|.*\.md\|.*\.txt\|.*.\.conf")
           git reset -- $(cat exclude.patch.conf)
+          git reset -- update-cmd-repositories.yaml
+          git reset -- exclude.patch.conf
+          if ! [ -n "$(git diff --cached --exit-code)" ]; then
+            exit 0;
+          fi
           git commit -s -F /tmp/commit-message
           git checkout -b update/${{ github.repository }}
           git push -f origin update/${{ github.repository }}

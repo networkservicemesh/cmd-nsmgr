@@ -89,7 +89,7 @@ jobs:
       - name: Restrict dependencies on github.com/networkservicemesh/*
         run: |
           for i in $(grep github.com/networkservicemesh/ go.mod |grep -v '^module' | sed 's;.*\(github.com\/networkservicemesh\/[a-zA-z\/]*\).*;\1;g' | sort -u);do
-            if [ "${i}" != "github.com/networkservicemesh/sdk" ] && [ "${i}" != "github.com/networkservicemesh/api" ]; then
+          if [ "${i}" != "github.com/networkservicemesh/sdk-vppagent" ] && [ "${i}" != "github.com/networkservicemesh/sdk" ] && [ "${i}" != "github.com/networkservicemesh/api" ] && [ "${i}" != "github.com/networkservicemesh/sdk-k8s" && [ "${i}" != "github.com/networkservicemesh/sdk-sriov" ]]; then
               echo Dependency on "${i}" is forbidden
               exit 1
             fi
@@ -158,7 +158,7 @@ jobs:
       - name: Build container
         run: docker build .
       - name: Run tests
-        run: docker run --rm $(docker build -q . --target test)
+        run: docker run --privileged  --rm $(docker build -q . --target test)
       - name: Find merged PR
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: jwalton/gh-find-current-pr@v1
