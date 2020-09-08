@@ -91,7 +91,7 @@ jobs:
           ALLOWED_REPOSITORIES: "sdk, api, sdk-k8s, sdk-vppagent, sdk-sriov"
         run: |
           for i in $(grep github.com/networkservicemesh/ go.mod |grep -v '^module' | sed 's;.*\(github.com\/networkservicemesh\/[a-zA-z\/]*\).*;\1;g' | sort -u);do
-            if [ "$(echo ${ALLOWED_REPOSITORIES}| grep ${i#github.com/networkservicemesh/})" ]; then
+            if ! [ "$(echo ${ALLOWED_REPOSITORIES}| grep ${i#github.com/networkservicemesh/})" ]; then
                 echo Dependency on "${i}" is forbidden
                 exit 1
             fi;
