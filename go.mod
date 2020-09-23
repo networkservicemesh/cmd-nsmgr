@@ -6,7 +6,7 @@ require (
 	github.com/antonfisher/nested-logrus-formatter v1.1.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/api v0.0.0-20200923231758-e91e69f22959
-	github.com/networkservicemesh/sdk v0.0.0-20200923232803-1c7db1ec33e3
+	github.com/networkservicemesh/sdk v0.0.0-20200923234642-595d4e79047c
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spiffe/go-spiffe/v2 v2.0.0-alpha.5
