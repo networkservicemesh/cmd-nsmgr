@@ -137,8 +137,8 @@ github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OS
 github.com/nats-io/stan.go v0.6.0/go.mod h1:eIcD5bi3pqbHT/xIIvXMwvzXYElgouBvaVRftaE+eac=
 github.com/networkservicemesh/api v0.0.0-20200923231758-e91e69f22959 h1:p+bW9S1qNjwkAtifamxsNWglHDYiwCexGssW3GYuBm4=
 github.com/networkservicemesh/api v0.0.0-20200923231758-e91e69f22959/go.mod h1:6hH0TfujZVin9W/6rWY7JnmNBNRvUrgXhr1aWyKuQKI=
-github.com/networkservicemesh/sdk v0.0.0-20200923234642-595d4e79047c h1:z0XeskNYIkZ0bCB9k+/u0CmJjozr9/pccKvUo8gDTbs=
-github.com/networkservicemesh/sdk v0.0.0-20200923234642-595d4e79047c/go.mod h1:nuo2nTX9GWUHfhu6jvVxB1oDv19lOkebcPgGewvEl6E=
+github.com/networkservicemesh/sdk v0.0.0-20200924065504-feac84841967 h1:utjK2Za8/rWO81sojPpH6pYq9VfW3ZV67+x8qDBAbKY=
+github.com/networkservicemesh/sdk v0.0.0-20200924065504-feac84841967/go.mod h1:nuo2nTX9GWUHfhu6jvVxB1oDv19lOkebcPgGewvEl6E=
 github.com/olekukonko/tablewriter v0.0.1/go.mod h1:vsDQFd/mU46D+Z4whnwzcISnGGzXWMclvtLoiIKAKIo=
 github.com/open-policy-agent/opa v0.16.1 h1:BDADmi1Xl08aPcubaYgSEU0lJ/zrWDwmFMRXVPX856c=
 github.com/open-policy-agent/opa v0.16.1/go.mod h1:P0xUE/GQAAgnvV537GzA0Ikw4+icPELRT327QJPkaKY=
