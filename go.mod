@@ -5,8 +5,8 @@ go 1.13
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.1.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/networkservicemesh/api v0.0.0-20200925211324-37a4e74e139d
-	github.com/networkservicemesh/sdk v0.0.0-20201001221248-06049216dfac
+	github.com/networkservicemesh/api v0.0.0-20201001183932-93ee44ca6fc4
+	github.com/networkservicemesh/sdk v0.0.0-20201007102542-cf9c2259e946
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spiffe/go-spiffe/v2 v2.0.0-alpha.5
