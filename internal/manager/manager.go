@@ -111,11 +111,15 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	callbackServer := callback.NewServer(authz.IdentityByEndpointID)
 
 	// Construct NSMgr chain
+	var regConn grpc.ClientConnInterface
+	if m.registryCC != nil {
+		regConn = m.registryCC
+	}
 	m.mgr = nsmgr.NewServer(m.ctx,
 		nsmMgr,
 		authorize.NewServer(),
 		spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime),
-		m.registryCC, callbackServer.WithCallbackDialer(),
+		regConn, callbackServer.WithCallbackDialer(),
 
 		// Default client security call options
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny()))),
@@ -164,6 +168,11 @@ func waitErrChan(ctx context.Context, errChan <-chan error, m *manager) {
 }
 
 func (m *manager) connectRegistry() (err error) {
+	if m.configuration.RegistryURL.String() == "" {
+		logrus.Infof("NSM: No NSM registry passed, use memory registry")
+		m.registryCC = nil
+		return nil
+	}
 	regSpan := spanhelper.FromContext(m.ctx, "dial-registry")
 	defer regSpan.Finish()
 

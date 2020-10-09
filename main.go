@@ -20,6 +20,8 @@ import (
 	"context"
 	"os"
 
+	"github.com/networkservicemesh/sdk/pkg/tools/debug"
+
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/opentracing/opentracing-go"
@@ -34,11 +36,18 @@ import (
 )
 
 func main() {
-	// Setup context to catch signals
+	// Setup conmomod text to catch signals
 	// Setup logging
 	logrus.SetFormatter(&nested.Formatter{})
 	logrus.SetLevel(logrus.TraceLevel)
 	ctx := log.WithField(signalctx.WithSignals(context.Background()), "cmd", os.Args[:1])
+
+	// ********************************************************************************
+	// Debug self if necessary
+	// ********************************************************************************
+	if err := debug.Self(); err != nil {
+		log.Entry(ctx).Infof("%s", err)
+	}
 
 	var span opentracing.Span
 	// Enable Jaeger
@@ -57,6 +66,8 @@ func main() {
 	if err := envconfig.Process("nsm", cfg); err != nil {
 		logrus.Fatalf("error processing cfg from env: %+v", err)
 	}
+
+	logrus.Infof("Using configuration: %v", cfg)
 
 	// Startup is finished
 	cmdSpan.Finish()
