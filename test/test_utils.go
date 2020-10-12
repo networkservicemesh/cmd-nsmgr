@@ -106,6 +106,7 @@ func (s *testSetup) init() {
 	require.Nil(s.t, s.registryServer.Start(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(s.Source, s.Source, tlsconfig.AuthorizeAny())))))
 
 	s.configuration.RegistryURL = *s.registryServer.GetListenEndpointURI()
+	s.configuration.MaxTokenLifetime = time.Hour
 }
 
 func (s *testSetup) Start() {
