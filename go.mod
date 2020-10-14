@@ -1,6 +1,6 @@
 module github.com/networkservicemesh/cmd-nsmgr
 
-go 1.13
+go 1.15
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.0
@@ -11,5 +11,5 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spiffe/go-spiffe/v2 v2.0.0-beta.2
 	github.com/stretchr/testify v1.6.1
-	google.golang.org/grpc v1.33.0
+	google.golang.org/grpc v1.32.0
 )
