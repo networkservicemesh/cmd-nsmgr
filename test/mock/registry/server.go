@@ -22,6 +22,8 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/edwarnicke/serialize"
+
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
 	"github.com/sirupsen/logrus"
@@ -32,7 +34,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
-	"github.com/networkservicemesh/sdk/pkg/tools/serialize"
 )
 
 // Server mock registry server interface
