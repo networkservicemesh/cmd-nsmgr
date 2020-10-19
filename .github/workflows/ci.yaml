@@ -12,12 +12,11 @@ jobs:
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v1
-      - name: Install yamllint
-        run: pip install --user yamllint
-      - name: Run yamllint
-        run: ~/.local/bin/yamllint -c .yamllint.yml --strict .
+      - name: yaml-lint
+        uses: ibiqlik/action-yamllint@v1
+        with:
+          config_file: .yamllint.yml
+          strict: true
   shellcheck:
     name: shellcheck
     runs-on: ubuntu-latest
@@ -26,48 +25,31 @@ jobs:
       - name: shellcheck
         uses: fkautz/shell-linter@v1.0.1
   build:
-    name: build
-    runs-on: ubuntu-latest
+    name: build and test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v1
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Setup Go
+        uses: actions/setup-go@v1
         with:
           go-version: 1.13.4
-      - run: |
-          go build -race  ./...
-  build-win:
-    name: build-win
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.13.4
-      - run: |
-          go build -race  ./...
-  build-osx:
-    name: build-osx
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.13.4
-      - run: |
-          go build -race  ./...
+      - name: Build
+        run: go build -race  ./...
   golangci-lint:
     name: golangci-lint
     runs-on: ubuntu-latest
-    env:
-      GOLANGCI_LINT_CONTAINER: golangci/golangci-lint:v1.28.3
     if: github.repository != 'networkservicemesh/cmd-template'
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
-      - name: Pull golangci-lint docker container
-        run: docker pull ${GOLANGCI_LINT_CONTAINER}
-      - name: Run golangci-lint
-        run: docker run --rm -v $(pwd):/app -w /app ${GOLANGCI_LINT_CONTAINER} golangci-lint run
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.31
 
   excludeFmtErrorf:
     name: exclude fmt.Errorf
@@ -143,11 +125,6 @@ jobs:
         run: |
           grep ^replace go.mod || exit 0
           exit 1
-  captureRunEnv:
-    name: Capture CI Run Env
-    runs-on: ubuntu-latest
-    steps:
-      - run: printenv
   docker:
     name: Docker Build & Test
     runs-on: ubuntu-latest
