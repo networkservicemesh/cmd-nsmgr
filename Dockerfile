@@ -1,11 +1,11 @@
-FROM golang:1.13-buster as go
+FROM golang:1.15-buster as go
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
 ENV GOBIN=/bin
-RUN go get github.com/go-delve/delve/cmd/dlv@v1.4.0
-RUN go run github.com/edwarnicke/dl \
-    https://github.com/spiffe/spire/releases/download/v0.9.3/spire-0.9.3-linux-x86_64-glibc.tar.gz | \
-    tar -xzvf - -C /bin --strip=3 ./spire-0.9.3/bin/spire-server ./spire-0.9.3/bin/spire-agent
+RUN go get github.com/go-delve/delve/cmd/dlv@v1.5.0
+RUN go get github.com/edwarnicke/dl
+RUN dl https://github.com/spiffe/spire/releases/download/v0.11.1/spire-0.11.1-linux-x86_64-glibc.tar.gz | \
+    tar -xzvf - -C /bin --strip=3 ./spire-0.11.1/bin/spire-server ./spire-0.11.1/bin/spire-agent
 
 FROM go as build
 WORKDIR /build
