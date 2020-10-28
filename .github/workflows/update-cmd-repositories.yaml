@@ -9,7 +9,7 @@ jobs:
   update-dependent-repositories:
     strategy:
       matrix:
-        repository: [cmd-registry-proxy-dns, cmd-nsc, cmd-registry-memory, cmd-nsmgr, cmd-forwarder-vppagent, cmd-exclude-prefixes-k8s]
+        repository: [cmd-registry-proxy-dns, cmd-nsc, cmd-registry-memory, cmd-nsmgr, cmd-forwarder-vppagent, cmd-exclude-prefixes-k8s, cmd-forwarder-sriov]
     name: Update ${{ matrix.repository }}
     runs-on: ubuntu-latest
     if: github.repository == 'networkservicemesh/cmd-template'
@@ -55,12 +55,14 @@ jobs:
           git fetch cmd_template
           git diff cmd_template/master -R | git apply
           git add $(git ls-tree --name-only -r cmd_template/master | grep ".*\.yml\|.*\.yaml\|.*\.md\|.*\.txt\|.*.\.conf")
-          if ! [ "$(git restore --staged -- .templateignore)" ]; then
+          {
+            git restore --staged -- .templateignore &&
             git restore -- .templateignore
-          fi
-          if ! [ "$(git restore --staged -- $(cat .templateignore))" ]; then
-            git restore -- $(cat .templateignore)
-          fi
+          } || {
+            git add .templateignore
+          }
+          git restore --staged -- $(cat .templateignore)
+          git restore -- $(cat .templateignore)
           if ! [ -n "$(git diff --cached --exit-code)" ]; then
             exit 0;
           fi
