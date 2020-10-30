@@ -68,6 +68,7 @@ github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZm
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
 github.com/edwarnicke/exechelper v1.0.2 h1:dD49Ui2U0FBFxxhalnKw6vLS0P0TkgnXBRvKL/xmC5w=
 github.com/edwarnicke/exechelper v1.0.2/go.mod h1:/T271jtNX/ND4De6pa2aRy2+8sNtyCDB1A2pp4M+fUs=
+github.com/edwarnicke/grpcfd v0.0.0-20200920223154-d5b6e1f19bd0 h1:FHjcIM6YU8DnCw94+29EZX0bUqh016oqrtJrO8ZYiIY=
 github.com/edwarnicke/grpcfd v0.0.0-20200920223154-d5b6e1f19bd0/go.mod h1:rHihB9YvNMixz8rS+ZbwosI2kj65VLkeyYAI2M+/cGA=
 github.com/edwarnicke/serialize v0.0.0-20200705214914-ebc43080eecf h1:/lViRfaDxKINb2X6kOR3EJKJGR+MxUvqfgtYt5nh+qc=
 github.com/edwarnicke/serialize v0.0.0-20200705214914-ebc43080eecf/go.mod h1:XvbCO/QGsl3X8RzjBMoRpkm54FIAZH5ChK2j+aox7pw=
@@ -303,8 +304,8 @@ github.com/nats-io/stan.go v0.6.0/go.mod h1:eIcD5bi3pqbHT/xIIvXMwvzXYElgouBvaVRf
 github.com/nbutton23/zxcvbn-go v0.0.0-20180912185939-ae427f1e4c1d/go.mod h1:o96djdrsSGy3AWPyBgZMAGfxZNfgntdJG+11KU4QvbU=
 github.com/networkservicemesh/api v0.0.0-20201026112722-9b20186587a5 h1:44dviIdHDxy/Ue9hngpXk0XzjW7CULt/+KYvf3HBxzY=
 github.com/networkservicemesh/api v0.0.0-20201026112722-9b20186587a5/go.mod h1:qvxdY1Zt4QTtiG+uH1XmjpegeHjlt5Jj4A8iK55iJPI=
-github.com/networkservicemesh/sdk v0.0.0-20201028160615-a9950861756c h1:cjggZ5GDABmYIeAhqNx+8tDoMCv47s0iIk1uj+LRNsk=
-github.com/networkservicemesh/sdk v0.0.0-20201028160615-a9950861756c/go.mod h1:vrKZMfJE8+KvsFHpRsl/VlJN/gmjwCwpgufmHx+OrLQ=
+github.com/networkservicemesh/sdk v0.0.0-20201030000210-74cd5de11f63 h1:ph/2Y2kvFDN/9TTdajBcljbsA6awcXXgAnd6UvG2HwU=
+github.com/networkservicemesh/sdk v0.0.0-20201030000210-74cd5de11f63/go.mod h1:cFhv5eeR5WCI0mphP+SpDYzI14f9TRoERf5Si38I/SU=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWbfPhv4DMiApHyliiK5xCTNVSPiaAs=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nishanths/exhaustive v0.0.0-20200811152831-6cf413ae40e0/go.mod h1:wBEpHwM2OdmeNpdCvRPUlkEbBuaFmcK4Wv8Q7FuGW3c=
