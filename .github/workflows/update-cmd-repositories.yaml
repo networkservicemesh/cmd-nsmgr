@@ -59,6 +59,8 @@ jobs:
             git restore --staged -- .templateignore &&
             git restore -- .templateignore
           } || {
+            rm .templateignore
+            touch .templateignore
             git add .templateignore
           }
           git restore --staged -- $(cat .templateignore)
