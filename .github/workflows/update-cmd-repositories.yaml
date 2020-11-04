@@ -59,8 +59,8 @@ jobs:
             git restore --staged -- .templateignore &&
             git restore -- .templateignore
           } || {
-            rm .templateignore
-            touch .templateignore
+            rm .templateignore &&
+            touch .templateignore &&
             git add .templateignore
           }
           while read -r line || [[ -n "$line" ]]; do

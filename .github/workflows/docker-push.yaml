@@ -11,22 +11,25 @@ jobs:
     env:
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       DOCKER_USER: ${{ secrets.DOCKER_LOGIN }}
-      TAG: ${GITHUB_SHA::8}
       ORG: networkservicemeshci
       CGO_ENABLED: 0
       NAME: ${{ github.event.repository.name }}
     if: github.repository != 'networkservicemesh/cmd-template'
     steps:
       - uses: actions/checkout@v2
+      - uses: benjlevesque/short-sha@v1.1
+        id: short-sha
+        with:
+          length: 8
       - uses: actions/setup-go@v1
         with:
           go-version: 1.15
       - name: Build ${NAME} image
-        run: docker build . -t "${ORG}/${NAME}:${TAG}" --target runtime
+        run: docker build . -t "${ORG}/${NAME}:${{ steps.short-sha.outputs.sha }}" --target runtime
       - name: Push ${NAME} image
         run: |
           docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-          docker push "${ORG}/${NAME}:${TAG}"
-          docker image rm "${ORG}/${NAME}:${TAG}"
+          docker push "${ORG}/${NAME}:${{ steps.short-sha.outputs.sha }}"
+          docker image rm "${ORG}/${NAME}:${{ steps.short-sha.outputs.sha }}"
           docker push "${ORG}/${NAME}:latest"
           docker image rm "${ORG}/${NAME}:latest"
