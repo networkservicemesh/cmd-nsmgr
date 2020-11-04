@@ -1,0 +1,73 @@
+---
+name: Update integration-k8s-kind reposiotry
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  update-integration-k8s-kind:
+    name: Update integration-k8s-kind
+    runs-on: ubuntu-latest
+    if: github.repository != 'networkservicemesh/cmd-template'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Find merged PR
+        uses: jwalton/gh-find-current-pr@v1
+        id: findPr
+        with:
+          github-token: ${{ github.token }}
+      - name: Create commit message
+        working-directory: ${{ github.repository }}
+        run: |
+          echo "Update image version of ${{ github.repository }} ${{ github.repository }}#${{ steps.findPr.outputs.pr }}" >> /tmp/commit-message
+          echo "" >> /tmp/commit-message
+          echo "${{ github.repository }} PR link: https://github.com/${{ github.repository }}/pull/${{ steps.findPr.outputs.pr }}" >> /tmp/commit-message
+          echo "" >> /tmp/commit-message
+          echo "${{ github.repository }} commit message:" >> /tmp/commit-message
+          git log -1 >> /tmp/commit-message
+          echo "Commit Message:"
+          cat /tmp/commit-message
+      - name: Checkout networkservicemesh/integration-k8s-kind
+        uses: actions/checkout@v2
+        with:
+          path: networkservicemesh/integration-k8s-kind
+          repository: networkservicemesh/integration-k8s-kind
+          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.13.4
+      - uses: benjlevesque/short-sha@v1.1
+        id: short-sha
+        with:
+          length: 8
+      - name: Find and Replace version
+        uses: jacobtomlinson/gha-find-replace@master
+        with:
+          find: "${{ github.event.repository.name }}:.*\n"
+          replace: "${{ github.event.repository.name }}:${{ steps.short-sha.outputs.sha }}\n"
+      - name: Push update to the integration-k8s-kind
+        working-directory: networkservicemesh/integration-k8s-kind
+        run: |
+          echo Starting to update repositotry integration-k8s-kind
+          git add -- .
+          if ! [ -n "$(git diff --cached --exit-code)" ]; then
+            echo Repository already up to date
+            exit 0;
+          fi
+          diff=$(git diff --name-only)
+          branchName="${{ github.event.repository.name }}"
+          if  [ $(grep "go.mod" <<< "${diff}") && $(grep "" -c <<< "${diff}") == 1 ]; then
+            sdkPattern="github.com\/networkservicemesh\/sdk "
+            sdkVersion=$(grep --regexp "${sdkPattern}" go.mod)
+            branchName="${sdkVersion:${#sdkPattern}}"
+          fi;
+          git config --global user.email "nsmbot@networkservicmesh.io"
+          git config --global user.name "NSMBot"
+          git commit -s -F /tmp/commit-message
+          git checkout -b update/"${branchName}"
+          while [ git push -f origin update/"${branchName}" ]; do
+            git fetch origin update/"${branchName}"
+            git rebase origin/update/"${branchName}"
+          done

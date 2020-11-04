@@ -11,7 +11,7 @@ jobs:
     env:
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       DOCKER_USER: ${{ secrets.DOCKER_LOGIN }}
-      TAG: master
+      TAG: ${GITHUB_SHA::8}
       ORG: networkservicemeshci
       CGO_ENABLED: 0
       NAME: ${{ github.event.repository.name }}
@@ -28,3 +28,5 @@ jobs:
           docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
           docker push "${ORG}/${NAME}:${TAG}"
           docker image rm "${ORG}/${NAME}:${TAG}"
+          docker push "${ORG}/${NAME}:latest"
+          docker image rm "${ORG}/${NAME}:latest"
