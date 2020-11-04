@@ -11,19 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository != 'networkservicemesh/cmd-template'
     steps:
-      - name: Checkout repository
+      - name: Checkout ${{ github.repository }}
         uses: actions/checkout@v2
-      - name: Find merged PR
-        uses: jwalton/gh-find-current-pr@v1
-        id: findPr
         with:
-          github-token: ${{ github.token }}
+          path: ${{ github.repository }}S
+          ref: master
+          fetch-depth: '0'
       - name: Create commit message
         working-directory: ${{ github.repository }}
         run: |
-          echo "Update image version of ${{ github.repository }} ${{ github.repository }}#${{ steps.findPr.outputs.pr }}" >> /tmp/commit-message
+          echo "Update application version to latest version from ${{ github.repository }}@master ${{ github.repository }}#${{ github.event.number }}" >> /tmp/commit-message
           echo "" >> /tmp/commit-message
-          echo "${{ github.repository }} PR link: https://github.com/${{ github.repository }}/pull/${{ steps.findPr.outputs.pr }}" >> /tmp/commit-message
+          echo "${{ github.repository }} PR link: https://github.com/${{ github.repository }}/pull/${{ github.event.number }}" >> /tmp/commit-message
           echo "" >> /tmp/commit-message
           echo "${{ github.repository }} commit message:" >> /tmp/commit-message
           git log -1 >> /tmp/commit-message
@@ -35,9 +34,6 @@ jobs:
           path: networkservicemesh/integration-k8s-kind
           repository: networkservicemesh/integration-k8s-kind
           token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.13.4
       - uses: benjlevesque/short-sha@v1.1
         id: short-sha
         with:
