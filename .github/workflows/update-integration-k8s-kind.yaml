@@ -11,12 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository != 'networkservicemesh/cmd-template'
     steps:
-      - name: Checkout ${{ github.repository }}
+      - name: Checkout ${{ github.repository }} code
         uses: actions/checkout@v2
-        with:
-          path: ${{ github.repository }}S
-          ref: master
-          fetch-depth: '0'
       - name: Create commit message
         working-directory: ${{ github.repository }}
         run: |
