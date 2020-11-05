@@ -53,22 +53,17 @@ jobs:
           git config --global user.name "NSMBot"
           git remote add cmd_template https://github.com/networkservicemesh/cmd-template.git
           git fetch cmd_template
+          if [ ! -f .templateignore ]; then
+            touch .templateignore
+            git add .templateignore
+          fi
           git diff cmd_template/master -R | git apply
           git add $(git ls-tree --name-only -r cmd_template/master | grep ".*\.yml\|.*\.yaml\|.*\.md\|.*\.txt\|.*.\.conf")
-          {
-            git restore --staged -- .templateignore &&
-            git restore -- .templateignore
-          } || {
-            rm .templateignore &&
-            touch .templateignore &&
-            git add .templateignore
-          }
+          git restore -- .templateignore
           while read -r line || [[ -n "$line" ]]; do
             git restore --staged -- $line
             git restore -- $line
           done < .templateignore
-          git restore --staged -- $(cat .templateignore)
-          git restore -- $(cat .templateignore)
           if ! [ -n "$(git diff --cached --exit-code)" ]; then
             exit 0;
           fi

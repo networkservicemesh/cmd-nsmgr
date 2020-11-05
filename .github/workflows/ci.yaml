@@ -164,7 +164,6 @@ jobs:
     env:
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
       DOCKER_USER: ${{ secrets.DOCKER_LOGIN }}
-      TAG: ${GITHUB_SHA::8}
       ORG: networkservicemeshci
       CGO_ENABLED: 0
       NAME: ${{ github.event.repository.name }}
@@ -177,12 +176,12 @@ jobs:
         with:
           go-version: 1.15
       - name: Build ${NAME} image
-        run: docker build . -t "${ORG}/${NAME}:${TAG}" --target runtime
+        run: docker build . -t "${ORG}/${NAME}:${GITHUB_SHA::8}" --target runtime
       - name: Push ${NAME} image
         run: |
           docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-          docker push "${ORG}/${NAME}:${TAG}"
-          docker image rm "${ORG}/${NAME}:${TAG}"
+          docker push "${ORG}/${NAME}:${GITHUB_SHA::8}"
+          docker image rm "${ORG}/${NAME}:${GITHUB_SHA::8}"
           docker push "${ORG}/${NAME}:latest"
           docker image rm "${ORG}/${NAME}:latest"
 
