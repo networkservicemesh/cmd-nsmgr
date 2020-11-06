@@ -24,12 +24,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
-	"github.com/networkservicemesh/sdk/pkg/tools/callback"
-	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
@@ -38,10 +32,16 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
-	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
+	"github.com/networkservicemesh/sdk/pkg/tools/callback"
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
+
+	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
+	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 )
 
 const (
@@ -122,13 +122,20 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		regConn, callbackServer.WithCallbackDialer(),
 
 		// Default client security call options
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny()))),
+		grpc.WithTransportCredentials(
+			grpcfdTransportCredentials(
+				credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
+			),
+		),
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 
 	// If we Listen on Unix socket for local connections we need to be sure folder are exist
 	createListenFolders(configuration)
 
-	m.server = grpc.NewServer(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny()))))
+	m.server = grpc.NewServer(grpc.Creds(
+		grpcfdTransportCredentials(
+			credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny()))),
+	))
 	m.mgr.Register(m.server)
 
 	// Register callback serve to grpc.

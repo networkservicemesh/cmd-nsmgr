@@ -20,19 +20,19 @@ import (
 	"context"
 	"os"
 
-	"github.com/networkservicemesh/sdk/pkg/tools/debug"
-
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
-	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
-	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
+	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
 	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
+
+	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
+	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
 )
 
 func main() {
