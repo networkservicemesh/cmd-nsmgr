@@ -9,7 +9,15 @@ jobs:
   update-dependent-repositories:
     strategy:
       matrix:
-        repository: [cmd-registry-proxy-dns, cmd-nsc, cmd-registry-memory, cmd-nsmgr, cmd-forwarder-vppagent, cmd-exclude-prefixes-k8s, cmd-forwarder-sriov]
+        repository:
+          - cmd-registry-proxy-dns
+          - cmd-nsc
+          - cmd-registry-memory
+          - cmd-nsmgr
+          - cmd-forwarder-vppagent
+          - cmd-exclude-prefixes-k8s
+          - cmd-forwarder-sriov
+          - cmd-nse-icmp-responder
     name: Update ${{ matrix.repository }}
     runs-on: ubuntu-latest
     if: github.repository == 'networkservicemesh/cmd-template'
