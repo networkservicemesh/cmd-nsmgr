@@ -266,7 +266,7 @@ jobs:
           git config --global user.name "NSMBot"
           git commit -s -F /tmp/commit-message
           git checkout -b update/"${branchName}"
-          while [ git push origin update/"${branchName}" ]; do
+          while [ $(git push origin update/"${branchName}") ]; do
             git fetch origin update/"${branchName}"
             git rebase origin/update/"${branchName}"
           done
