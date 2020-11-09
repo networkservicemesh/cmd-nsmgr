@@ -119,13 +119,9 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	if m.registryCC != nil {
 		regConn = m.registryCC
 	}
-	m.mgr = nsmgr.NewServer(m.ctx,
-		nsmMgr,
-		authorize.NewServer(),
-		spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime),
-		regConn,
 
-		// Allow to use callback url's
+	clientOptions := append(
+		spanhelper.WithTracingDial(),
 		callbackServer.WithCallbackDialer(),
 		// Default client security call options
 		grpc.WithTransportCredentials(
@@ -133,15 +129,28 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 				credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
 			),
 		),
-		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
+		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
+	)
+	m.mgr = nsmgr.NewServer(m.ctx,
+		nsmMgr,
+		authorize.NewServer(),
+		spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime),
+		regConn,
+		clientOptions...,
+	)
 
 	// If we Listen on Unix socket for local connections we need to be sure folder are exist
 	createListenFolders(configuration)
 
-	m.server = grpc.NewServer(grpc.Creds(
-		GrpcfdTransportCredentials(
-			credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny()))),
-	))
+	serverOptions := append(
+		spanhelper.WithTracing(),
+		grpc.Creds(
+			GrpcfdTransportCredentials(
+				credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
+			),
+		),
+	)
+	m.server = grpc.NewServer(serverOptions...)
 	m.mgr.Register(m.server)
 
 	// Register callback serve to grpc.
@@ -194,7 +203,8 @@ func (m *manager) connectRegistry() (err error) {
 	defer cancel()
 
 	logrus.Infof("NSM: Connecting to NSE registry %v", m.configuration.RegistryURL.String())
-	m.registryCC, err = grpc.DialContext(ctx, grpcutils.URLToTarget(&m.configuration.RegistryURL), creds, grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
+	options := append(spanhelper.WithTracingDial(), creds, grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
+	m.registryCC, err = grpc.DialContext(ctx, grpcutils.URLToTarget(&m.configuration.RegistryURL), options...)
 	if err != nil {
 		regSpan.LogErrorf("failed to dial NSE NsmgrRegistry: %v", err)
 	}
