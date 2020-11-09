@@ -8,10 +8,11 @@ require (
 	github.com/edwarnicke/serialize v1.0.4
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/api v0.0.0-20201108204718-89d65b3605cf
-	github.com/networkservicemesh/sdk v0.0.0-20201108205456-6cb6021c406e
+	github.com/networkservicemesh/sdk v0.0.0-20201109055906-c677c7ac2b57
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spiffe/go-spiffe/v2 v2.0.0-beta.2
 	github.com/stretchr/testify v1.6.1
-	google.golang.org/grpc v1.33.1
+	golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13 // indirect
+	google.golang.org/grpc v1.33.2
 )
