@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.0
+	github.com/edwarnicke/grpcfd v0.0.0-20200920223154-d5b6e1f19bd0
 	github.com/edwarnicke/serialize v1.0.4
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/api v0.0.0-20201108204718-89d65b3605cf
