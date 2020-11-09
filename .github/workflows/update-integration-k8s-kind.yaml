@@ -58,6 +58,13 @@ jobs:
             sdkPattern="github.com\/networkservicemesh\/sdk "
             sdkVersion=$(grep --regexp "${sdkPattern}" go.mod)
             branchName="${sdkVersion:${#sdkPattern}}"
+          else
+            {
+              git push origin --delete update/"${branchName}"
+            } || {
+              echo Branch update/"${branchName}" is already deleted
+            }
+          fi;
           fi;
           git config --global user.email "nsmbot@networkservicmesh.io"
           git config --global user.name "NSMBot"
