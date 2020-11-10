@@ -168,29 +168,31 @@ jobs:
       CGO_ENABLED: 0
       NAME: ${{ github.event.repository.name }}
     needs:
-      - automerge
+      - build
+      - docker
     if: github.actor == 'nsmbot' && github.base_ref == 'master' && github.event_name == 'pull_request' && github.repository != 'networkservicemesh/cmd-template'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v1
         with:
           go-version: 1.15
-      - name: Build ${NAME} image
+      - name: Build ${NAME}:${GITHUB_SHA::8} image
         run: docker build . -t "${ORG}/${NAME}:${GITHUB_SHA::8}" --target runtime
-      - name: Push ${NAME} image
+      - name: Build ${NAME}:latest image
+        run: docker build . -t "${ORG}/${NAME}" --target runtime
+      - name: Push ${NAME} images
         run: |
           docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
           docker push "${ORG}/${NAME}:${GITHUB_SHA::8}"
           docker image rm "${ORG}/${NAME}:${GITHUB_SHA::8}"
-          docker push "${ORG}/${NAME}:latest"
-          docker image rm "${ORG}/${NAME}:latest"
+          docker push "${ORG}/${NAME}"
+          docker image rm "${ORG}/${NAME}"
 
   automerge:
     name: automerge
     runs-on: ubuntu-latest
     needs:
-      - build
-      - docker
+      - update-integration-k8s-kind
     if: github.actor == 'nsmbot' && github.base_ref == 'master' && github.event_name == 'pull_request'
     steps:
       - name: Check out the code
@@ -209,7 +211,7 @@ jobs:
 
   update-integration-k8s-kind:
     needs:
-      - automerge
+      - pushImage
     name: Update integration-k8s-kind
     runs-on: ubuntu-latest
     if: github.repository != 'networkservicemesh/cmd-template' && github.actor == 'nsmbot' && github.base_ref == 'master' && github.event_name == 'pull_request'
@@ -223,7 +225,7 @@ jobs:
       - name: Create commit message
         working-directory: ${{ github.repository }}
         run: |
-          echo "Update application version to latest version from ${{ github.repository }}@master ${{ github.repository }}#${{ github.event.number }}" >> /tmp/commit-message
+          echo "Update application version to latest version from ${{ github.repository }}@master ${{ github.repository }}#${{ github.event.number }}" > /tmp/commit-message
           echo "" >> /tmp/commit-message
           echo "${{ github.repository }} PR link: https://github.com/${{ github.repository }}/pull/${{ github.event.number }}" >> /tmp/commit-message
           echo "" >> /tmp/commit-message
@@ -257,7 +259,7 @@ jobs:
           fi
           diff=$(git diff --name-only)
           branchName="${{ github.event.repository.name }}"
-          if  [ $(grep "go.mod" <<< "${diff}") && $(grep "" -c <<< "${diff}") == 1 ]; then
+          if [[ $(grep "go.mod" <<< "${diff}") && $(grep "" -c <<< "${diff}") == 2 ]]; then
             sdkPattern="github.com\/networkservicemesh\/sdk "
             sdkVersion=$(grep --regexp "${sdkPattern}" go.mod)
             branchName="${sdkVersion:${#sdkPattern}}"

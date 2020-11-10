@@ -20,7 +20,7 @@ jobs:
       - name: Create commit message
         working-directory: ${{ github.repository }}
         run: |
-          echo "Update application version to latest version from ${{ github.repository }}@master ${{ github.repository }}#${{ github.event.number }}" >> /tmp/commit-message
+          echo "Update application version to latest version from ${{ github.repository }}@master ${{ github.repository }}#${{ github.event.number }}" > /tmp/commit-message
           echo "" >> /tmp/commit-message
           echo "${{ github.repository }} PR link: https://github.com/${{ github.repository }}/pull/${{ github.event.number }}" >> /tmp/commit-message
           echo "" >> /tmp/commit-message
@@ -54,7 +54,7 @@ jobs:
           fi
           diff=$(git diff --name-only)
           branchName="${{ github.event.repository.name }}"
-          if  [ $(grep "go.mod" <<< "${diff}") && $(grep "" -c <<< "${diff}") == 1 ]; then
+          if [[ $(grep "go.mod" <<< "${diff}") && $(grep "" -c <<< "${diff}") == 2 ]]; then
             sdkPattern="github.com\/networkservicemesh\/sdk "
             sdkVersion=$(grep --regexp "${sdkPattern}" go.mod)
             branchName="${sdkVersion:${#sdkPattern}}"
@@ -64,7 +64,6 @@ jobs:
             } || {
               echo Branch update/"${branchName}" is already deleted
             }
-          fi;
           fi;
           git config --global user.email "nsmbot@networkservicmesh.io"
           git config --global user.name "NSMBot"
