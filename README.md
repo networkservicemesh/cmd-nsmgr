@@ -35,7 +35,7 @@ docker run --rm $(docker build -q --target test .)
 # Debugging
 
 ## Debugging the tests
-If you wish to debug the test code itself, that can be acheived by running:
+If you wish to debug the test code itself, that can be achieved by running:
 
 ```bash
 docker run --rm -p 40000:40000 $(docker build -q --target debug .)

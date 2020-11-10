@@ -20,6 +20,7 @@ package manager
 
 import "google.golang.org/grpc/credentials"
 
-func grpcfdTransportCredentials(cred credentials.TransportCredentials) credentials.TransportCredentials {
+// GrpcfdTransportCredentials - construct a grpc-fd transport credentials if supported.
+func GrpcfdTransportCredentials(cred credentials.TransportCredentials) credentials.TransportCredentials {
 	return cred
 }
