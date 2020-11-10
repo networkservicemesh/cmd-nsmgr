@@ -22,6 +22,10 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/networkservicemesh/sdk/pkg/registry/common/setid"
+	"github.com/networkservicemesh/sdk/pkg/registry/core/setlogoption"
+	"github.com/networkservicemesh/sdk/pkg/tools/log"
+
 	"github.com/edwarnicke/serialize"
 
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
@@ -77,8 +81,14 @@ func NewServer(name string, listenOn *url.URL) Server {
 		listenOn: listenOn,
 		executor: serialize.Executor{},
 	}
-	result.nsServer = chain.NewNetworkServiceRegistryServer(memory.NewNetworkServiceRegistryServer())
-	result.nseServer = chain.NewNetworkServiceEndpointRegistryServer(memory.NewNetworkServiceEndpointRegistryServer())
+	result.nsServer = setlogoption.NewNetworkServiceRegistryServer(
+		map[string]string{"chain": "MockRegistry"},
+		chain.NewNetworkServiceRegistryServer(
+			memory.NewNetworkServiceRegistryServer()))
+	result.nseServer = setlogoption.NewNetworkServiceEndpointRegistryServer(map[string]string{"chain": "MockRegistry"},
+		chain.NewNetworkServiceEndpointRegistryServer(
+			setid.NewNetworkServiceEndpointRegistryServer(),
+			memory.NewNetworkServiceEndpointRegistryServer()))
 	return result
 }
 
@@ -93,6 +103,7 @@ func (s *serverImpl) Start(options ...grpc.ServerOption) error {
 	}
 
 	s.ctx, s.cancel = context.WithCancel(context.Background())
+	s.ctx = log.WithField(s.ctx, "cmd", "NsmgrMockRegistry")
 
 	s.errChan = grpcutils.ListenAndServe(s.ctx, s.listenOn, s.server)
 

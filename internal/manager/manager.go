@@ -24,6 +24,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
+
+	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
+	"github.com/networkservicemesh/sdk/pkg/tools/callback"
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
@@ -32,15 +39,10 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
-	"github.com/networkservicemesh/sdk/pkg/tools/callback"
-	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 
-	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 )
 
@@ -68,6 +70,7 @@ func (m *manager) Stop() {
 
 func (m *manager) initSecurity() (err error) {
 	// Get a X509Source
+	logrus.Infof("Obtaining X509 Certificate Source")
 	m.source, err = workloadapi.NewX509Source(m.ctx)
 	if err != nil {
 		logrus.Fatalf("error getting x509 source: %+v", err)
@@ -91,6 +94,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	// Context to use for all things started in main
 	m.ctx, m.cancelFunc = context.WithCancel(ctx)
+	m.ctx = log.WithField(m.ctx, "cmd", "Nsmgr")
 
 	if err := m.initSecurity(); err != nil {
 		m.span.LogErrorf("failed to create new spiffe TLS Peer %v", err)
@@ -103,7 +107,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	}
 
 	nsmMgr := &registry.NetworkServiceEndpoint{
-		Name: configuration.Name + "#nsmgr",
+		Name: configuration.Name,
 		Url:  configuration.ListenOn[0].String(),
 	}
 
@@ -119,11 +123,13 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		nsmMgr,
 		authorize.NewServer(),
 		spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime),
-		regConn, callbackServer.WithCallbackDialer(),
+		regConn,
 
+		// Allow to use callback url's
+		callbackServer.WithCallbackDialer(),
 		// Default client security call options
 		grpc.WithTransportCredentials(
-			grpcfdTransportCredentials(
+			GrpcfdTransportCredentials(
 				credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
 			),
 		),
@@ -133,7 +139,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	createListenFolders(configuration)
 
 	m.server = grpc.NewServer(grpc.Creds(
-		grpcfdTransportCredentials(
+		GrpcfdTransportCredentials(
 			credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny()))),
 	))
 	m.mgr.Register(m.server)
@@ -183,7 +189,7 @@ func (m *manager) connectRegistry() (err error) {
 	regSpan := spanhelper.FromContext(m.ctx, "dial-registry")
 	defer regSpan.Finish()
 
-	creds := grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())))
+	creds := grpc.WithTransportCredentials(GrpcfdTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny()))))
 	ctx, cancel := context.WithTimeout(regSpan.Context(), 5*time.Second)
 	defer cancel()
 

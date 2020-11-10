@@ -26,6 +26,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/networkservicemesh/sdk/pkg/tools/log"
+
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
 	"github.com/sirupsen/logrus"
@@ -66,12 +68,10 @@ type testSetup struct {
 	SVid           *x509svid.SVID
 }
 
-const (
-	setupTimeout = 15 * time.Second
-)
-
 func (s *testSetup) init() {
-	s.ctx, s.cancel = context.WithTimeout(context.Background(), setupTimeout)
+	s.ctx, s.cancel = context.WithCancel(context.Background())
+
+	s.ctx = log.WithField(s.ctx, "cmd", "NsmgrTestSetup")
 
 	s.baseDir = TempFolder()
 
@@ -137,7 +137,7 @@ func newSetup(t *testing.T) *testSetup {
 	setup := &testSetup{
 		t: t,
 		configuration: &config.Config{
-			Name: "test-nsm2",
+			Name: "nsmgr",
 		},
 	}
 	return setup
@@ -159,7 +159,7 @@ func (s *testSetup) newClient(ctx context.Context) grpc.ClientConnInterface {
 	clientCtx, clientCancelFunc := context.WithTimeout(ctx, 5*time.Second)
 	defer clientCancelFunc()
 	grpcCC, err := grpc.DialContext(clientCtx, grpcutils.URLToTarget(&s.configuration.ListenOn[0]),
-		grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(s.Source, s.Source, tlsconfig.AuthorizeAny()))),
+		grpc.WithTransportCredentials(manager.GrpcfdTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(s.Source, s.Source, tlsconfig.AuthorizeAny())))),
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 	require.Nil(s.t, err)
 	return grpcCC

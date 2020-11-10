@@ -19,9 +19,17 @@ package test
 
 import (
 	"context"
+	"io/ioutil"
 	"net/url"
+	"os"
+	"path"
+	"runtime"
 	"testing"
 	"time"
+
+	"github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
+	"github.com/networkservicemesh/sdk/pkg/registry/core/next"
+	"github.com/networkservicemesh/sdk/pkg/tools/log"
 
 	"github.com/sirupsen/logrus"
 
@@ -98,12 +106,17 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
 	defer cancel()
 
+	ctx = log.WithField(ctx, "chain", "Client")
+
 	nsmClient := setup.newClient(ctx)
 
 	nseURL := &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}
 
 	nseErr, nseGRPC := serve(ctx, nseURL,
-		endpoint.NewServer(ctx, "nse", authorize.NewServer(), spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime), setextracontext.NewServer(map[string]string{"perform": "ok"})),
+		endpoint.NewServer(ctx, "nse",
+			authorize.NewServer(),
+			spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime),
+			setextracontext.NewServer(map[string]string{"perform": "ok"})),
 		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
 
 	require.NotNil(t, nseErr)
@@ -116,16 +129,89 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 
 	nsRegClient := registry.NewNetworkServiceRegistryClient(nsmClient)
 	regClient := registry.NewNetworkServiceEndpointRegistryClient(nsmClient)
-	ns, _ := nsRegClient.Register(context.Background(), &registry.NetworkService{
+	ns, _ := nsRegClient.Register(ctx, &registry.NetworkService{
 		Name: "my-service",
 	})
 
-	nseReg, err := regClient.Register(context.Background(), &registry.NetworkServiceEndpoint{
+	nseReg, err := regClient.Register(ctx, &registry.NetworkServiceEndpoint{
 		NetworkServiceNames: []string{ns.Name},
 		Url:                 "callback:" + nseURL.String(),
 	})
 	require.Nil(t, err)
 	require.NotNil(t, nseReg)
+
+	f.registerCrossNSE(ctx, setup, regClient, t)
+
+	cl := client.NewClient(ctx, "nsc-1", nil, spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime), nsmClient)
+
+	var connection *networkservice.Connection
+
+	connection, err = cl.Request(ctx, &networkservice.NetworkServiceRequest{
+		MechanismPreferences: []*networkservice.Mechanism{
+			{Cls: cls.LOCAL, Type: kernel.MECHANISM},
+		},
+		Connection: &networkservice.Connection{
+			Id:             "1",
+			NetworkService: "my-service",
+			Context:        &networkservice.ConnectionContext{},
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, connection)
+	require.Equal(t, 5, len(connection.Path.PathSegments))
+
+	_, err = cl.Close(ctx, connection)
+	require.Nil(t, err)
+}
+
+// Check endpoint registration and Client request to it with sendfd/recvfd
+func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
+	if runtime.GOOS != "linux" {
+		f.T().Skip("not a linux")
+	}
+	t := f.T()
+	// TODO: check with defer goleak.VerifyNone(t)
+	setup := newSetup(t)
+	setup.Start()
+	defer setup.Stop()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	nsmClient := setup.newClient(ctx)
+
+	rootDir, _ := ioutil.TempDir(os.TempDir(), "nsmgr")
+
+	nseURL := &url.URL{Scheme: "unix", Path: path.Join(rootDir, "endpoint.socket")}
+
+	nseErr, nseGRPC := serve(ctx, nseURL,
+		endpoint.NewServer(ctx, "nse", authorize.NewServer(), spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime), setextracontext.NewServer(map[string]string{"perform": "ok"})),
+		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
+
+	require.NotNil(t, nseErr)
+	require.NotNil(t, nseGRPC)
+
+	nsRegClient := registry.NewNetworkServiceRegistryClient(nsmClient)
+	regClient := next.NewNetworkServiceEndpointRegistryClient(
+		sendfd.NewNetworkServiceEndpointRegistryClient(),
+		registry.NewNetworkServiceEndpointRegistryClient(nsmClient),
+	)
+	logrus.Infof("Register network service")
+	ns, nserr := nsRegClient.Register(context.Background(), &registry.NetworkService{
+		Name: "my-service",
+	})
+
+	require.NoError(t, nserr)
+
+	logrus.Infof("Register NSE")
+
+	nseReg, err := regClient.Register(context.Background(), &registry.NetworkServiceEndpoint{
+		NetworkServiceNames: []string{ns.Name},
+		Url:                 nseURL.String(),
+	})
+	require.Nil(t, err)
+	require.NotNil(t, nseReg)
+
+	logrus.Infof("Register cross NSE")
 
 	f.registerCrossNSE(ctx, setup, regClient, t)
 
@@ -163,7 +249,7 @@ func (f *NsmgrTestSuite) registerCrossNSE(ctx context.Context, setup *testSetup,
 
 	// Register Cross NSE
 	crossRegClient := chain.NewNetworkServiceEndpointRegistryClient(interpose.NewNetworkServiceEndpointRegistryClient(), regClient)
-	_, err := crossRegClient.Register(context.Background(), &registry.NetworkServiceEndpoint{
+	_, err := crossRegClient.Register(ctx, &registry.NetworkServiceEndpoint{
 		Url:  crossNSEURL.String(),
 		Name: "cross-nse",
 	})
