@@ -28,6 +28,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
@@ -214,19 +216,25 @@ func (m *manager) defaultURL() string {
 			return u.String()
 		}
 	}
-	return "tcp://127.0.0.1:5001"
+	return m.configuration.ListenOn[0].String()
 }
 
 func (m *manager) getPublicURL() string {
 	u := m.defaultURL()
+	port, err := portFromURL(u)
+	if err != nil {
+		logrus.Warn(err.Error())
+		return u
+	}
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
+		logrus.Warn(err.Error())
 		return u
 	}
 	for _, a := range addrs {
 		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				return fmt.Sprintf("%v://%v:%v", tcpSchema, ipnet.IP.String(), portFromURL(u))
+				return fmt.Sprintf("%v://%v:%v", tcpSchema, ipnet.IP.String(), port)
 			}
 		}
 	}
@@ -252,11 +260,11 @@ func (m *manager) startServers(server *grpc.Server) {
 	wg.Wait()
 }
 
-func portFromURL(s string) int {
+func portFromURL(s string) (int, error) {
 	pieces := strings.Split(s, ":")
 	p, err := strconv.Atoi(pieces[len(pieces)-1])
 	if err != nil {
-		logrus.Fatalf("URL has wrong port: %v, err: %v", s, err)
+		return 0, errors.Wrapf(err, "url %v has wrong port", s)
 	}
-	return p
+	return p, nil
 }
