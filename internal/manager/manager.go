@@ -21,14 +21,11 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"path"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
-
-	"github.com/pkg/errors"
 
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
 
@@ -209,36 +206,34 @@ func (m *manager) connectRegistry() (err error) {
 	return
 }
 
-func (m *manager) defaultURL() string {
+func (m *manager) defaultURL() *url.URL {
 	for i := 0; i < len(m.configuration.ListenOn); i++ {
 		u := &m.configuration.ListenOn[i]
 		if u.Scheme == tcpSchema {
-			return u.String()
+			return u
 		}
 	}
-	return m.configuration.ListenOn[0].String()
+	return &m.configuration.ListenOn[0]
 }
 
 func (m *manager) getPublicURL() string {
 	u := m.defaultURL()
-	port, err := portFromURL(u)
-	if err != nil {
-		logrus.Warn(err.Error())
-		return u
+	if u.Host != "" {
+		return u.String()
 	}
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		logrus.Warn(err.Error())
-		return u
+		return u.String()
 	}
 	for _, a := range addrs {
 		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				return fmt.Sprintf("%v://%v:%v", tcpSchema, ipnet.IP.String(), port)
+				return fmt.Sprintf("%v://%v:%v", tcpSchema, ipnet.IP.String(), u.Port())
 			}
 		}
 	}
-	return u
+	return u.String()
 }
 
 func (m *manager) startServers(server *grpc.Server) {
@@ -258,13 +253,4 @@ func (m *manager) startServers(server *grpc.Server) {
 		}()
 	}
 	wg.Wait()
-}
-
-func portFromURL(s string) (int, error) {
-	pieces := strings.Split(s, ":")
-	p, err := strconv.Atoi(pieces[len(pieces)-1])
-	if err != nil {
-		return 0, errors.Wrapf(err, "url %v has wrong port", s)
-	}
-	return p, nil
 }
