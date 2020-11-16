@@ -218,7 +218,7 @@ func (m *manager) defaultURL() *url.URL {
 
 func (m *manager) getPublicURL() string {
 	u := m.defaultURL()
-	if u.Host != "" {
+	if u.Port() == "" || len(u.Host) != len(":")+len(u.Port()) {
 		return u.String()
 	}
 	addrs, err := net.InterfaceAddrs()
