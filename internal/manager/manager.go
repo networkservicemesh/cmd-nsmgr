@@ -19,6 +19,9 @@ package manager
 
 import (
 	"context"
+	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"path"
 	"sync"
@@ -27,6 +30,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
+
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/tools/callback"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
@@ -39,6 +43,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
+
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
@@ -108,7 +113,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	nsmMgr := &registry.NetworkServiceEndpoint{
 		Name: configuration.Name,
-		Url:  configuration.ListenOn[0].String(),
+		Url:  m.getPublicURL(),
 	}
 
 	// Construct callback server
@@ -148,7 +153,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	callback.RegisterCallbackServiceServer(m.server, callbackServer)
 
 	// Create GRPC server
-	m.startServers(nsmMgr, m.server)
+	m.startServers(m.server)
 
 	log.Entry(m.ctx).Infof("Startup completed in %v", time.Since(starttime))
 	starttime = time.Now()
@@ -201,7 +206,37 @@ func (m *manager) connectRegistry() (err error) {
 	return
 }
 
-func (m *manager) startServers(nsmMgr *registry.NetworkServiceEndpoint, server *grpc.Server) {
+func (m *manager) defaultURL() *url.URL {
+	for i := 0; i < len(m.configuration.ListenOn); i++ {
+		u := &m.configuration.ListenOn[i]
+		if u.Scheme == tcpSchema {
+			return u
+		}
+	}
+	return &m.configuration.ListenOn[0]
+}
+
+func (m *manager) getPublicURL() string {
+	u := m.defaultURL()
+	if u.Host != "" {
+		return u.String()
+	}
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		logrus.Warn(err.Error())
+		return u.String()
+	}
+	for _, a := range addrs {
+		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return fmt.Sprintf("%v://%v:%v", tcpSchema, ipnet.IP.String(), u.Port())
+			}
+		}
+	}
+	return u.String()
+}
+
+func (m *manager) startServers(server *grpc.Server) {
 	var wg sync.WaitGroup
 	for i := 0; i < len(m.configuration.ListenOn); i++ {
 		listenURL := &m.configuration.ListenOn[i]
@@ -211,9 +246,6 @@ func (m *manager) startServers(nsmMgr *registry.NetworkServiceEndpoint, server *
 			// Create a required number of servers
 			errChan := grpcutils.ListenAndServe(m.ctx, listenURL, server)
 			logrus.Infof("NSMGR Listening on: %v", listenURL.String())
-			if listenURL.Scheme == tcpSchema {
-				nsmMgr.Url = listenURL.String()
-			}
 			// For public schemas we need to perform registation of nsmgr into registry.
 			wg.Done()
 
