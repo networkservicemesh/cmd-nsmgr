@@ -23,7 +23,6 @@ import (
 	"os"
 
 	"github.com/networkservicemesh/sdk/pkg/registry/common/setid"
-	"github.com/networkservicemesh/sdk/pkg/registry/core/setlogoption"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 
 	"github.com/edwarnicke/serialize"
@@ -81,14 +80,8 @@ func NewServer(name string, listenOn *url.URL) Server {
 		listenOn: listenOn,
 		executor: serialize.Executor{},
 	}
-	result.nsServer = setlogoption.NewNetworkServiceRegistryServer(
-		map[string]string{"chain": "MockRegistry"},
-		chain.NewNetworkServiceRegistryServer(
-			memory.NewNetworkServiceRegistryServer()))
-	result.nseServer = setlogoption.NewNetworkServiceEndpointRegistryServer(map[string]string{"chain": "MockRegistry"},
-		chain.NewNetworkServiceEndpointRegistryServer(
-			setid.NewNetworkServiceEndpointRegistryServer(),
-			memory.NewNetworkServiceEndpointRegistryServer()))
+	result.nsServer = chain.NewNamedNetworkServiceRegistryServer(name, memory.NewNetworkServiceRegistryServer())
+	result.nseServer = chain.NewNamedNetworkServiceEndpointRegistryServer(name, setid.NewNetworkServiceEndpointRegistryServer(), memory.NewNetworkServiceEndpointRegistryServer())
 	return result
 }
 
