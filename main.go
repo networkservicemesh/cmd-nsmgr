@@ -22,7 +22,6 @@ import (
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
@@ -49,14 +48,13 @@ func main() {
 		log.Entry(ctx).Infof("%s", err)
 	}
 
-	var span opentracing.Span
+	// ********************************************************************************
+	// Configure open tracing
+	// ********************************************************************************
 	// Enable Jaeger
-	if jaeger.IsOpentracingEnabled() {
-		jaegerCloser := jaeger.InitJaeger("nsmgr")
-		defer func() { _ = jaegerCloser.Close() }()
-		span = opentracing.StartSpan("nsmgr")
-	}
-	cmdSpan := spanhelper.NewSpanHelper(ctx, span, "nsmgr")
+	jaegerCloser := jaeger.InitJaeger("nsmgr")
+	defer func() { _ = jaegerCloser.Close() }()
+	cmdSpan := spanhelper.FromContext(ctx, "nsmgr")
 
 	// Get cfg from environment
 	cfg := &config.Config{}
