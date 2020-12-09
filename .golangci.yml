@@ -112,7 +112,7 @@ linters-settings:
       - regexpPattern
       - singleCaseSwitch
       - sloppyLen
-      - sloppyReassign
+      # - sloppyReassign
       - stringXbytes
       - switchTrue
       - typeAssertChain
