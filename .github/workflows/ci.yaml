@@ -52,7 +52,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.31
+          version: v1.34.0
 
   excludeFmtErrorf:
     name: exclude fmt.Errorf
@@ -192,7 +192,7 @@ jobs:
     name: automerge
     runs-on: ubuntu-latest
     needs:
-      - update-integration-k8s-kind
+      - update-deployments-k8s
     if: github.actor == 'nsmbot' && github.base_ref == 'master' && github.event_name == 'pull_request'
     steps:
       - name: Check out the code
@@ -209,10 +209,8 @@ jobs:
           GITHUB_LOGIN: nsmbot
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  update-integration-k8s-kind:
-    needs:
-      - pushImage
-    name: Update integration-k8s-kind
+  update-deployments-k8s:
+    name: Update deployments-k8s
     runs-on: ubuntu-latest
     if: github.repository != 'networkservicemesh/cmd-template' && github.actor == 'nsmbot' && github.base_ref == 'master' && github.event_name == 'pull_request'
     steps:
@@ -222,23 +220,16 @@ jobs:
           path: ${{ github.repository }}
           repository: ${{ github.repository }}
           token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
-      - name: Create branch name
-        working-directory: ${{ github.repository }}
-        run: |
-          diff=$(git diff --name-only)
-          BRANCH_NAME="${{ github.event.repository.name }}"
-          if [[ $(grep "go.mod" <<< "${diff}") && $(grep "" -c <<< "${diff}") == 2 ]]; then
-            sdkPattern="github.com\/networkservicemesh\/sdk "
-            sdkVersion=$(grep --regexp "${sdkPattern}" go.mod)
-            BRANCH_NAME="${sdkVersion:${#sdkPattern}}"
-          else
-            {
-              git push origin --delete update/"${BRANCH_NAME}"
-            } || {
-              echo Branch update/"${BRANCH_NAME}" is already deleted
-            }
-          fi;
-          echo BRANCH_NAME=${BRANCH_NAME} >> $GITHUB_ENV
+      - uses: benjlevesque/short-sha@v1.2
+        id: short-sha
+        with:
+          length: 8
+      - name: Checkout networkservicemesh/deployments-k8s
+        uses: actions/checkout@v2
+        with:
+          path: networkservicemesh/deployments-k8s
+          repository: networkservicemesh/deployments-k8s
+          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
       - name: Create commit message
         working-directory: ${{ github.repository }}
         run: |
@@ -250,25 +241,15 @@ jobs:
           git log -1 >> /tmp/commit-message
           echo "Commit Message:"
           cat /tmp/commit-message
-      - name: Checkout networkservicemesh/integration-k8s-kind
-        uses: actions/checkout@v2
-        with:
-          path: networkservicemesh/integration-k8s-kind
-          repository: networkservicemesh/integration-k8s-kind
-          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
-      - uses: benjlevesque/short-sha@v1.2
-        id: short-sha
-        with:
-          length: 8
       - name: Find and Replace version
         uses: jacobtomlinson/gha-find-replace@master
         with:
           find: "${{ github.event.repository.name }}:.*\n"
           replace: "${{ github.event.repository.name }}:${{ steps.short-sha.outputs.sha }}\n"
-      - name: Push update to the integration-k8s-kind
-        working-directory: networkservicemesh/integration-k8s-kind
+      - name: Push update to the deployments-k8s
+        working-directory: networkservicemesh/deployments-k8s
         run: |
-          echo Starting to update repositotry integration-k8s-kind
+          echo Starting to update repositotry deployments-k8s
           git add -- .
           if ! [ -n "$(git diff --cached --exit-code)" ]; then
             echo Repository already up to date
@@ -277,8 +258,5 @@ jobs:
           git config --global user.email "nsmbot@networkservicmesh.io"
           git config --global user.name "NSMBot"
           git commit -s -F /tmp/commit-message
-          git checkout -b update/"${BRANCH_NAME}"
-          while [ $(git push origin update/"${BRANCH_NAME}") ]; do
-            git fetch origin update/"${BRANCH_NAME}"
-            git rebase origin/update/"${BRANCH_NAME}"
-          done
+          git checkout -b update/${{ github.repository }}
+          git push -f origin update/${{ github.repository }}
