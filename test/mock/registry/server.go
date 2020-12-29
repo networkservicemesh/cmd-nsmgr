@@ -31,8 +31,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/sdk/pkg/registry/common/memory"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
-	"github.com/networkservicemesh/sdk/pkg/registry/memory"
 
 	"google.golang.org/grpc"
 
