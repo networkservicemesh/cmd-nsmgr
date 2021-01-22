@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Doc.ai and/or its affiliates.
+// Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -29,7 +29,7 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/next"
-	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	"github.com/networkservicemesh/sdk/pkg/tools/logger"
 
 	"github.com/sirupsen/logrus"
 
@@ -107,7 +107,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
 	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
 	defer cancel()
 
-	ctx = log.WithField(ctx, "chain", "Client")
+	ctx = logger.WithFields(ctx, map[string]interface{}{"chain": "Client"})
 
 	nsmClient := setup.newClient(ctx)
 
