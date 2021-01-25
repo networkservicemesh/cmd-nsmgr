@@ -1,5 +1,7 @@
 // Copyright (c) 2020 Cisco and/or its affiliates.
 //
+// Copyright (c) 2021 Doc.ai and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,9 +28,10 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
-	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	"github.com/networkservicemesh/sdk/pkg/tools/logger"
+	"github.com/networkservicemesh/sdk/pkg/tools/logger/logruslogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/logger/tracelogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
-	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
@@ -37,24 +40,27 @@ import (
 func main() {
 	// Setup conmomod text to catch signals
 	// Setup logging
+	ctx := signalctx.WithSignals(context.Background())
 	logrus.SetFormatter(&nested.Formatter{})
-	logrus.SetLevel(logrus.TraceLevel)
-	ctx := log.WithField(signalctx.WithSignals(context.Background()), "cmd", os.Args[:1])
+	ctx, _ = logruslogger.New(
+		logger.WithFields(ctx, map[string]interface{}{"cmd": os.Args[:1]}),
+	)
 
 	// ********************************************************************************
 	// Debug self if necessary
 	// ********************************************************************************
 	if err := debug.Self(); err != nil {
-		log.Entry(ctx).Infof("%s", err)
+		logger.Log(ctx).Infof("%s", err)
 	}
 
 	// ********************************************************************************
 	// Configure open tracing
 	// ********************************************************************************
 	// Enable Jaeger
+	logger.EnableTracing(true)
 	jaegerCloser := jaeger.InitJaeger("nsmgr")
 	defer func() { _ = jaegerCloser.Close() }()
-	cmdSpan := spanhelper.FromContext(ctx, "nsmgr")
+	traceCtx, finish := tracelogger.WithLog(ctx, "nsmgr")
 
 	// Get cfg from environment
 	cfg := &config.Config{}
@@ -68,9 +74,9 @@ func main() {
 	logrus.Infof("Using configuration: %v", cfg)
 
 	// Startup is finished
-	cmdSpan.Finish()
+	finish()
 
-	err := manager.RunNsmgr(cmdSpan.Context(), cfg)
+	err := manager.RunNsmgr(traceCtx, cfg)
 	if err != nil {
 		logrus.Fatalf("error executing rootCmd: %v", err)
 	}

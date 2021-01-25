@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Doc.ai and/or its affiliates.
+// Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -24,6 +24,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/networkservicemesh/sdk/pkg/tools/logger"
+
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
@@ -43,7 +45,7 @@ type NsmgrTestSuite struct {
 
 func (f *NsmgrTestSuite) SetupSuite() {
 	logrus.SetFormatter(&nested.Formatter{})
-	logrus.SetLevel(logrus.TraceLevel)
+	logger.EnableTracing(true)
 	f.ctx, f.cancel = context.WithCancel(context.Background())
 
 	// Run spire

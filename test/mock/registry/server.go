@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Doc.ai and/or its affiliates.
+// Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -23,7 +23,7 @@ import (
 	"os"
 
 	"github.com/networkservicemesh/sdk/pkg/registry/common/setid"
-	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	"github.com/networkservicemesh/sdk/pkg/tools/logger"
 
 	"github.com/edwarnicke/serialize"
 
@@ -96,7 +96,7 @@ func (s *serverImpl) Start(options ...grpc.ServerOption) error {
 	}
 
 	s.ctx, s.cancel = context.WithCancel(context.Background())
-	s.ctx = log.WithField(s.ctx, "cmd", "NsmgrMockRegistry")
+	s.ctx = logger.WithFields(s.ctx, map[string]interface{}{"cmd": "NsmgrMockRegistry"})
 
 	s.errChan = grpcutils.ListenAndServe(s.ctx, s.listenOn, s.server)
 

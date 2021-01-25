@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Doc.ai and/or its affiliates.
+// Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -27,6 +27,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/sdk/pkg/tools/logger/tracelogger"
+
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
@@ -44,8 +46,9 @@ import (
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
 
-	"github.com/networkservicemesh/sdk/pkg/tools/log"
-	"github.com/networkservicemesh/sdk/pkg/tools/spanhelper"
+	"github.com/networkservicemesh/sdk/pkg/tools/logger"
+	"github.com/networkservicemesh/sdk/pkg/tools/logger/logruslogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/opentracing"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
@@ -58,7 +61,6 @@ const (
 type manager struct {
 	ctx           context.Context
 	configuration *config.Config
-	span          spanhelper.SpanHelper
 	cancelFunc    context.CancelFunc
 	registryCC    *grpc.ClientConn
 	mgr           nsmgr.Nsmgr
@@ -94,20 +96,24 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	m := &manager{
 		configuration: configuration,
-		span:          spanhelper.FromContext(ctx, "start"),
 	}
+	logger.EnableTracing(true)
+	traceCtx, finish := tracelogger.WithLog(ctx, "start")
+	defer finish()
 
 	// Context to use for all things started in main
 	m.ctx, m.cancelFunc = context.WithCancel(ctx)
-	m.ctx = log.WithField(m.ctx, "cmd", "Nsmgr")
+	m.ctx, _ = logruslogger.New(
+		logger.WithFields(ctx, map[string]interface{}{"cmd": "Nsmgr"}),
+	)
 
 	if err := m.initSecurity(); err != nil {
-		m.span.LogErrorf("failed to create new spiffe TLS Peer %v", err)
+		logger.Log(traceCtx).Errorf("failed to create new spiffe TLS Peer %v", err)
 		return err
 	}
 
 	if err := m.connectRegistry(); err != nil {
-		m.span.LogErrorf("failed to connect registry %v", err)
+		logger.Log(traceCtx).Errorf("failed to connect registry %v", err)
 		return err
 	}
 
@@ -126,7 +132,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	}
 
 	clientOptions := append(
-		spanhelper.WithTracingDial(),
+		opentracing.WithTracingDial(),
 		callbackServer.WithCallbackDialer(),
 		// Default client security call options
 		grpc.WithTransportCredentials(
@@ -148,7 +154,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	createListenFolders(configuration)
 
 	serverOptions := append(
-		spanhelper.WithTracing(),
+		opentracing.WithTracing(),
 		grpc.Creds(
 			GrpcfdTransportCredentials(
 				credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
@@ -164,11 +170,11 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	// Create GRPC server
 	m.startServers(m.server)
 
-	log.Entry(m.ctx).Infof("Startup completed in %v", time.Since(starttime))
+	logger.Log(m.ctx).Infof("Startup completed in %v", time.Since(starttime))
 	starttime = time.Now()
 	<-m.ctx.Done()
 
-	log.Entry(m.ctx).Infof("Exit requested. Uptime: %v", time.Since(starttime))
+	logger.Log(m.ctx).Infof("Exit requested. Uptime: %v", time.Since(starttime))
 	// If we here we need to call Stop
 	m.Stop()
 	return nil
@@ -190,7 +196,7 @@ func waitErrChan(ctx context.Context, errChan <-chan error, m *manager) {
 	case err := <-errChan:
 		// We need to cal cancel global context, since it could be multiple context of this kind
 		m.cancelFunc()
-		log.Entry(ctx).Warnf("failed to serve: %v", err)
+		logger.Log(ctx).Warnf("failed to serve: %v", err)
 	}
 }
 
@@ -200,18 +206,18 @@ func (m *manager) connectRegistry() (err error) {
 		m.registryCC = nil
 		return nil
 	}
-	regSpan := spanhelper.FromContext(m.ctx, "dial-registry")
-	defer regSpan.Finish()
+	traceCtx, finish := tracelogger.WithLog(m.ctx, "dial-registry")
+	defer finish()
 
 	creds := grpc.WithTransportCredentials(GrpcfdTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny()))))
-	ctx, cancel := context.WithTimeout(regSpan.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(traceCtx, 5*time.Second)
 	defer cancel()
 
 	logrus.Infof("NSM: Connecting to NSE registry %v", m.configuration.RegistryURL.String())
-	options := append(spanhelper.WithTracingDial(), creds, grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
+	options := append(opentracing.WithTracingDial(), creds, grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 	m.registryCC, err = grpc.DialContext(ctx, grpcutils.URLToTarget(&m.configuration.RegistryURL), options...)
 	if err != nil {
-		regSpan.LogErrorf("failed to dial NSE NsmgrRegistry: %v", err)
+		logger.Log(traceCtx).Errorf("failed to dial NSE NsmgrRegistry: %v", err)
 	}
 	return
 }
