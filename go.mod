@@ -8,7 +8,7 @@ require (
 	github.com/edwarnicke/serialize v1.0.7
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/api v0.0.0-20210129070124-aa2cf17f7641
-	github.com/networkservicemesh/sdk v0.0.0-20210201170418-ed5476d135bd
+	github.com/networkservicemesh/sdk v0.0.0-20210202151001-ae1147f8e592
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spiffe/go-spiffe/v2 v2.0.0-beta.2
