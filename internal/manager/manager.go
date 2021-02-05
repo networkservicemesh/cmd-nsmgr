@@ -31,10 +31,7 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
 
-	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
-
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
-	"github.com/networkservicemesh/sdk/pkg/tools/callback"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
 	"github.com/sirupsen/logrus"
@@ -122,9 +119,6 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		Url:  m.getPublicURL(),
 	}
 
-	// Construct callback server
-	callbackServer := callback.NewServer(authz.IdentityByEndpointID)
-
 	// Construct NSMgr chain
 	var regConn grpc.ClientConnInterface
 	if m.registryCC != nil {
@@ -133,7 +127,6 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	clientOptions := append(
 		opentracing.WithTracingDial(),
-		callbackServer.WithCallbackDialer(),
 		// Default client security call options
 		grpc.WithTransportCredentials(
 			GrpcfdTransportCredentials(
@@ -163,9 +156,6 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	)
 	m.server = grpc.NewServer(serverOptions...)
 	m.mgr.Register(m.server)
-
-	// Register callback serve to grpc.
-	callback.RegisterCallbackServiceServer(m.server, callbackServer)
 
 	// Create GRPC server
 	m.startServers(m.server)

@@ -29,7 +29,6 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/next"
-	"github.com/networkservicemesh/sdk/pkg/tools/logger"
 
 	"github.com/sirupsen/logrus"
 
@@ -56,10 +55,7 @@ import (
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/cls"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 	"github.com/networkservicemesh/api/pkg/api/registry"
-	"github.com/networkservicemesh/cmd-nsmgr/internal/authz"
-
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/client"
-	"github.com/networkservicemesh/sdk/pkg/tools/callback"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 )
 
@@ -95,74 +91,6 @@ func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGene
 		),
 	)
 	return crossNSe
-}
-
-// Check endpoint registration and Client request to it with callback
-func (f *NsmgrTestSuite) TestNSmgrEndpointCallback() {
-	t := f.T()
-	// TODO: check with defer goleak.VerifyNone(t)
-	setup := newSetup(t)
-	setup.Start()
-	defer setup.Stop()
-	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Second)
-	defer cancel()
-
-	ctx = logger.WithFields(ctx, map[string]interface{}{"chain": "Client"})
-
-	nsmClient := setup.newClient(ctx)
-
-	nseURL := &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}
-
-	nseErr, nseGRPC := serve(ctx, nseURL,
-		endpoint.NewServer(ctx, "nse",
-			authorize.NewServer(),
-			spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime),
-			setextracontext.NewServer(map[string]string{"perform": "ok"})),
-		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
-
-	require.NotNil(t, nseErr)
-	require.NotNil(t, nseGRPC)
-
-	// Serve callbacks
-	callbackClient := callback.NewClient(nsmClient, nseGRPC)
-	// Construct context to pass identity to server.
-	callbackClient.Serve(authz.WithCallbackEndpointID(ctx, nseURL))
-
-	nsRegClient := registry.NewNetworkServiceRegistryClient(nsmClient)
-	regClient := registry.NewNetworkServiceEndpointRegistryClient(nsmClient)
-	ns, _ := nsRegClient.Register(ctx, &registry.NetworkService{
-		Name: "my-service",
-	})
-
-	nseReg, err := regClient.Register(ctx, &registry.NetworkServiceEndpoint{
-		NetworkServiceNames: []string{ns.Name},
-		Url:                 "callback:" + nseURL.String(),
-	})
-	require.Nil(t, err)
-	require.NotNil(t, nseReg)
-
-	f.registerCrossNSE(ctx, setup, regClient, t)
-
-	cl := client.NewClient(ctx, "nsc-1", nil, spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime), nsmClient)
-
-	var connection *networkservice.Connection
-
-	connection, err = cl.Request(ctx, &networkservice.NetworkServiceRequest{
-		MechanismPreferences: []*networkservice.Mechanism{
-			{Cls: cls.LOCAL, Type: kernel.MECHANISM},
-		},
-		Connection: &networkservice.Connection{
-			Id:             "1",
-			NetworkService: "my-service",
-			Context:        &networkservice.ConnectionContext{},
-		},
-	})
-	require.Nil(t, err)
-	require.NotNil(t, connection)
-	require.Equal(t, 5, len(connection.Path.PathSegments))
-
-	_, err = cl.Close(ctx, connection)
-	require.Nil(t, err)
 }
 
 // Check endpoint registration and Client request to it with sendfd/recvfd
