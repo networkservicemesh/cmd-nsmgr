@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/networkservicemesh/sdk/pkg/tools/logger"
+	"github.com/networkservicemesh/sdk/pkg/tools/log"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
@@ -45,7 +45,7 @@ type NsmgrTestSuite struct {
 
 func (f *NsmgrTestSuite) SetupSuite() {
 	logrus.SetFormatter(&nested.Formatter{})
-	logger.EnableTracing(true)
+	log.EnableTracing(true)
 	f.ctx, f.cancel = context.WithCancel(context.Background())
 
 	// Run spire

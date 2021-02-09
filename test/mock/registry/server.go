@@ -23,7 +23,7 @@ import (
 	"os"
 
 	"github.com/networkservicemesh/sdk/pkg/registry/common/setid"
-	"github.com/networkservicemesh/sdk/pkg/tools/logger"
+	"github.com/networkservicemesh/sdk/pkg/tools/log"
 
 	"github.com/edwarnicke/serialize"
 
@@ -96,7 +96,7 @@ func (s *serverImpl) Start(options ...grpc.ServerOption) error {
 	}
 
 	s.ctx, s.cancel = context.WithCancel(context.Background())
-	s.ctx = logger.WithFields(s.ctx, map[string]interface{}{"cmd": "NsmgrMockRegistry"})
+	s.ctx = log.WithFields(s.ctx, map[string]interface{}{"cmd": "NsmgrMockRegistry"})
 
 	s.errChan = grpcutils.ListenAndServe(s.ctx, s.listenOn, s.server)
 

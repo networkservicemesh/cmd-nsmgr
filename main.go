@@ -28,9 +28,9 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
-	"github.com/networkservicemesh/sdk/pkg/tools/logger"
-	"github.com/networkservicemesh/sdk/pkg/tools/logger/logruslogger"
-	"github.com/networkservicemesh/sdk/pkg/tools/logger/tracelogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
@@ -42,25 +42,24 @@ func main() {
 	// Setup logging
 	ctx := signalctx.WithSignals(context.Background())
 	logrus.SetFormatter(&nested.Formatter{})
-	ctx, _ = logruslogger.New(
-		logger.WithFields(ctx, map[string]interface{}{"cmd": os.Args[:1]}),
-	)
+	ctx = log.WithFields(ctx, map[string]interface{}{"cmd": os.Args[:1]})
+	ctx = log.WithLog(ctx, logruslogger.New(ctx))
 
 	// ********************************************************************************
 	// Debug self if necessary
 	// ********************************************************************************
 	if err := debug.Self(); err != nil {
-		logger.Log(ctx).Infof("%s", err)
+		log.FromContext(ctx).Infof("%s", err)
 	}
 
 	// ********************************************************************************
 	// Configure open tracing
 	// ********************************************************************************
 	// Enable Jaeger
-	logger.EnableTracing(true)
-	jaegerCloser := jaeger.InitJaeger("nsmgr")
+	log.EnableTracing(true)
+	jaegerCloser := jaeger.InitJaeger(ctx, "nsmgr")
 	defer func() { _ = jaegerCloser.Close() }()
-	traceCtx, finish := tracelogger.WithLog(ctx, "nsmgr")
+	traceCtx, finish := withTraceLogger(ctx, "nsmgr")
 
 	// Get cfg from environment
 	cfg := &config.Config{}
@@ -79,5 +78,14 @@ func main() {
 	err := manager.RunNsmgr(traceCtx, cfg)
 	if err != nil {
 		logrus.Fatalf("error executing rootCmd: %v", err)
+	}
+}
+
+func withTraceLogger(ctx context.Context, operation string) (c context.Context, f func()) {
+	ctx, sLogger, span, sFinish := spanlogger.FromContext(ctx, operation)
+	ctx, lLogger, lFinish := logruslogger.FromSpan(ctx, span, operation)
+	return log.WithLog(ctx, sLogger, lLogger), func() {
+		sFinish()
+		lFinish()
 	}
 }
