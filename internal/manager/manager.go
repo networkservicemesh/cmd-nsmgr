@@ -27,8 +27,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/sdk/pkg/tools/logger/tracelogger"
-
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
 
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
@@ -43,8 +41,9 @@ import (
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
 
-	"github.com/networkservicemesh/sdk/pkg/tools/logger"
-	"github.com/networkservicemesh/sdk/pkg/tools/logger/logruslogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentracing"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 
@@ -94,23 +93,22 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	m := &manager{
 		configuration: configuration,
 	}
-	logger.EnableTracing(true)
-	traceCtx, finish := tracelogger.WithLog(ctx, "start")
+	log.EnableTracing(true)
+	traceCtx, finish := withTraceLogger(ctx, "start")
 	defer finish()
 
 	// Context to use for all things started in main
 	m.ctx, m.cancelFunc = context.WithCancel(ctx)
-	m.ctx, _ = logruslogger.New(
-		logger.WithFields(ctx, map[string]interface{}{"cmd": "Nsmgr"}),
-	)
+	m.ctx = log.WithFields(m.ctx, map[string]interface{}{"cmd": "Nsmgr"})
+	m.ctx = log.WithLog(m.ctx, logruslogger.New(m.ctx))
 
 	if err := m.initSecurity(); err != nil {
-		logger.Log(traceCtx).Errorf("failed to create new spiffe TLS Peer %v", err)
+		log.FromContext(traceCtx).Errorf("failed to create new spiffe TLS Peer %v", err)
 		return err
 	}
 
 	if err := m.connectRegistry(); err != nil {
-		logger.Log(traceCtx).Errorf("failed to connect registry %v", err)
+		log.FromContext(traceCtx).Errorf("failed to connect registry %v", err)
 		return err
 	}
 
@@ -160,14 +158,23 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	// Create GRPC server
 	m.startServers(m.server)
 
-	logger.Log(m.ctx).Infof("Startup completed in %v", time.Since(starttime))
+	log.FromContext(m.ctx).Infof("Startup completed in %v", time.Since(starttime))
 	starttime = time.Now()
 	<-m.ctx.Done()
 
-	logger.Log(m.ctx).Infof("Exit requested. Uptime: %v", time.Since(starttime))
+	log.FromContext(m.ctx).Infof("Exit requested. Uptime: %v", time.Since(starttime))
 	// If we here we need to call Stop
 	m.Stop()
 	return nil
+}
+
+func withTraceLogger(ctx context.Context, operation string) (c context.Context, f func()) {
+	ctx, sLogger, span, sFinish := spanlogger.FromContext(ctx, operation)
+	ctx, lLogger, lFinish := logruslogger.FromSpan(ctx, span, operation)
+	return log.WithLog(ctx, sLogger, lLogger), func() {
+		sFinish()
+		lFinish()
+	}
 }
 
 func createListenFolders(configuration *config.Config) {
@@ -186,7 +193,7 @@ func waitErrChan(ctx context.Context, errChan <-chan error, m *manager) {
 	case err := <-errChan:
 		// We need to cal cancel global context, since it could be multiple context of this kind
 		m.cancelFunc()
-		logger.Log(ctx).Warnf("failed to serve: %v", err)
+		log.FromContext(ctx).Warnf("failed to serve: %v", err)
 	}
 }
 
@@ -196,7 +203,7 @@ func (m *manager) connectRegistry() (err error) {
 		m.registryCC = nil
 		return nil
 	}
-	traceCtx, finish := tracelogger.WithLog(m.ctx, "dial-registry")
+	traceCtx, finish := withTraceLogger(m.ctx, "dial-registry")
 	defer finish()
 
 	creds := grpc.WithTransportCredentials(GrpcfdTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny()))))
@@ -207,7 +214,7 @@ func (m *manager) connectRegistry() (err error) {
 	options := append(opentracing.WithTracingDial(), creds, grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
 	m.registryCC, err = grpc.DialContext(ctx, grpcutils.URLToTarget(&m.configuration.RegistryURL), options...)
 	if err != nil {
-		logger.Log(traceCtx).Errorf("failed to dial NSE NsmgrRegistry: %v", err)
+		log.FromContext(traceCtx).Errorf("failed to dial NSE NsmgrRegistry: %v", err)
 	}
 	return
 }

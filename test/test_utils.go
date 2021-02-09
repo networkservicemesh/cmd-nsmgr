@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/sdk/pkg/tools/logger"
+	"github.com/networkservicemesh/sdk/pkg/tools/log"
 
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
@@ -71,7 +71,7 @@ type testSetup struct {
 func (s *testSetup) init() {
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 
-	s.ctx = logger.WithFields(s.ctx, map[string]interface{}{"cmd": "NsmgrTestSetup"})
+	s.ctx = log.WithFields(s.ctx, map[string]interface{}{"cmd": "NsmgrTestSetup"})
 
 	s.baseDir = TempFolder()
 
