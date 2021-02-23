@@ -27,6 +27,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/edwarnicke/grpcfd"
+
 	"github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/next"
 
@@ -82,10 +84,8 @@ func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGene
 		connect.NewServer(
 			ctx,
 			client.NewClientFactory(
-				name,
-				// What to call onHeal
-				addressof.NetworkServiceClient(adapters.NewServerToClient(crossNSe)),
-				tokenGenerator,
+				client.WithName(name),
+				client.WithHeal(addressof.NetworkServiceClient(adapters.NewServerToClient(crossNSe))),
 			),
 			clientDialOptions...,
 		),
@@ -144,7 +144,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 
 	f.registerCrossNSE(ctx, setup, regClient, t)
 
-	cl := client.NewClient(context.Background(), "nsc-1", nil, spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime), nsmClient)
+	cl := client.NewClient(context.Background(), nsmClient, client.WithName("nsc-1"))
 
 	var connection *networkservice.Connection
 
@@ -172,7 +172,13 @@ func (f *NsmgrTestSuite) registerCrossNSE(ctx context.Context, setup *testSetup,
 	endpoint.Serve(ctx, crossNSEURL,
 		newCrossNSE(ctx, "cross-nse", &setup.configuration.ListenOn[0], spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime),
 			grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))),
-			grpc.WithDefaultCallOptions(grpc.WaitForReady(true))),
+			grpc.WithDefaultCallOptions(
+				grpc.WaitForReady(true),
+				grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime))),
+			),
+			grpcfd.WithChainStreamInterceptor(),
+			grpcfd.WithChainUnaryInterceptor(),
+		),
 		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
 	logrus.Infof("Cross NSE listenON: %v", crossNSEURL.String())
 

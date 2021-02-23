@@ -26,7 +26,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/edwarnicke/grpcfd"
+
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
+	"github.com/networkservicemesh/sdk/pkg/tools/token"
 
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
@@ -160,7 +164,13 @@ func (s *testSetup) newClient(ctx context.Context) grpc.ClientConnInterface {
 	defer clientCancelFunc()
 	grpcCC, err := grpc.DialContext(clientCtx, grpcutils.URLToTarget(&s.configuration.ListenOn[0]),
 		grpc.WithTransportCredentials(manager.GrpcfdTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(s.Source, s.Source, tlsconfig.AuthorizeAny())))),
-		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
+		grpc.WithDefaultCallOptions(
+			grpc.WaitForReady(true),
+			grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(s.Source, s.configuration.MaxTokenLifetime))),
+		),
+		grpcfd.WithChainStreamInterceptor(),
+		grpcfd.WithChainUnaryInterceptor(),
+	)
 	require.Nil(s.t, err)
 	return grpcCC
 }

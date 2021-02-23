@@ -27,10 +27,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/edwarnicke/grpcfd"
+
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
 
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
+	"github.com/networkservicemesh/sdk/pkg/tools/token"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
@@ -131,7 +134,12 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 				credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
 			),
 		),
-		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
+		grpc.WithDefaultCallOptions(
+			grpc.WaitForReady(true),
+			grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(m.source, configuration.MaxTokenLifetime))),
+		),
+		grpcfd.WithChainStreamInterceptor(),
+		grpcfd.WithChainUnaryInterceptor(),
 	)
 	m.mgr = nsmgr.NewServer(m.ctx,
 		nsmMgr,

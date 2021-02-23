@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Doc.ai and/or its affiliates.
+// Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -18,6 +18,8 @@ package test
 
 import (
 	"net"
+	"net/url"
+	"path"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/peer"
@@ -44,6 +46,7 @@ func (f *NsmgrTestSuite) TestNSMgrEndpointRegister() {
 
 	regResponse, err := regClient.Register(regCtx, &registry.NetworkServiceEndpoint{
 		Name: "my-nse",
+		Url:  (&url.URL{Scheme: "unix", Path: path.Join("nsmgr", "endpoint.socket")}).String(),
 	})
 	require.Nil(t, err)
 	require.NotNil(t, regResponse)
