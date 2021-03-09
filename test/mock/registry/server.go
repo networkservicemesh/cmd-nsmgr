@@ -81,7 +81,7 @@ func NewServer(name string, listenOn *url.URL) Server {
 		executor: serialize.Executor{},
 	}
 	result.nsServer = chain.NewNamedNetworkServiceRegistryServer(name, memory.NewNetworkServiceRegistryServer())
-	result.nseServer = chain.NewNamedNetworkServiceEndpointRegistryServer(name, setid.NewNetworkServiceEndpointRegistryServer(), memory.NewNetworkServiceEndpointRegistryServer())
+	result.nseServer = chain.NewNamedNetworkServiceEndpointRegistryServer(name, memory.NewNetworkServiceEndpointRegistryServer(), setid.NewNetworkServiceEndpointRegistryServer())
 	return result
 }
 
