@@ -23,6 +23,7 @@ import (
 	"os"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
+	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 
@@ -38,6 +39,8 @@ import (
 )
 
 func main() {
+	println(uuid.New().String())
+
 	// Setup conmomod text to catch signals
 	// Setup logging
 	ctx := signalctx.WithSignals(context.Background())

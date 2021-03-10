@@ -19,4 +19,5 @@ require (
 	golang.org/x/tools v0.0.0-20200812195022-5ae4c3c160a0 // indirect
 	google.golang.org/grpc v1.35.0
 	gopkg.in/yaml.v2 v2.3.0 // indirect
+	github.com/google/uuid v1.1.2
 )
