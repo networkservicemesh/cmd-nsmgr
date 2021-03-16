@@ -75,19 +75,20 @@ type myEndpouint struct {
 // NewCrossNSE construct a new Cross connect test NSE
 func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGenerator token.GeneratorFunc, clientDialOptions ...grpc.DialOption) endpoint.Endpoint {
 	var crossNSe = &myEndpouint{}
-	crossNSe.Endpoint = endpoint.NewServer(ctx,
-		name,
-		authorize.NewServer(),
-		tokenGenerator,
+	crossNSe.Endpoint = endpoint.NewServer(ctx, tokenGenerator,
+		endpoint.WithName(name),
+		endpoint.WithAuthorizeServer(authorize.NewServer()),
 		// Statically set the url we use to the unix file socket for the NSMgr
-		clienturl.NewServer(connectTo),
-		connect.NewServer(
-			ctx,
-			client.NewClientFactory(
-				client.WithName(name),
-				client.WithHeal(addressof.NetworkServiceClient(adapters.NewServerToClient(crossNSe))),
+		endpoint.WithAdditionalFunctionality(
+			clienturl.NewServer(connectTo),
+			connect.NewServer(
+				ctx,
+				client.NewClientFactory(
+					client.WithName(name),
+					client.WithHeal(addressof.NetworkServiceClient(adapters.NewServerToClient(crossNSe))),
+				),
+				clientDialOptions...,
 			),
-			clientDialOptions...,
 		),
 	)
 	return crossNSe
@@ -113,7 +114,12 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	nseURL := &url.URL{Scheme: "unix", Path: path.Join(rootDir, "endpoint.socket")}
 
 	nseErr, nseGRPC := serve(ctx, nseURL,
-		endpoint.NewServer(ctx, "nse", authorize.NewServer(), spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime), setextracontext.NewServer(map[string]string{"perform": "ok"})),
+		endpoint.NewServer(ctx,
+			spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime),
+			endpoint.WithName("nse"),
+			endpoint.WithAuthorizeServer(authorize.NewServer()),
+			endpoint.WithAdditionalFunctionality(
+				setextracontext.NewServer(map[string]string{"perform": "ok"}))),
 		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
 
 	require.NotNil(t, nseErr)
