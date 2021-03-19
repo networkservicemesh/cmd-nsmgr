@@ -87,7 +87,7 @@ func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGene
 					client.WithName(name),
 					client.WithHeal(addressof.NetworkServiceClient(adapters.NewServerToClient(crossNSe))),
 				),
-				clientDialOptions...,
+				connect.WithDialOptions(clientDialOptions...),
 			),
 		),
 	)
