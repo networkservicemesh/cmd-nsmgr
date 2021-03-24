@@ -18,6 +18,7 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/clienturl"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
+	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/heal"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/setextracontext"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/core/adapters"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/interpose"

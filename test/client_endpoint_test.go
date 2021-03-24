@@ -36,6 +36,7 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/clienturl"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/heal"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/core/adapters"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/interpose"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
@@ -81,11 +82,11 @@ func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGene
 		// Statically set the url we use to the unix file socket for the NSMgr
 		endpoint.WithAdditionalFunctionality(
 			clienturl.NewServer(connectTo),
+			heal.NewServer(ctx, addressof.NetworkServiceClient(adapters.NewServerToClient(crossNSe))),
 			connect.NewServer(
 				ctx,
 				client.NewClientFactory(
 					client.WithName(name),
-					client.WithHeal(addressof.NetworkServiceClient(adapters.NewServerToClient(crossNSe))),
 				),
 				connect.WithDialOptions(clientDialOptions...),
 			),
