@@ -42,8 +42,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.com/networkservicemesh/api/pkg/api/registry"
-
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
@@ -115,11 +113,6 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		return err
 	}
 
-	nsmMgr := &registry.NetworkServiceEndpoint{
-		Name: configuration.Name,
-		Url:  m.getPublicURL(),
-	}
-
 	// Construct NSMgr chain
 	var regConn grpc.ClientConnInterface
 	if m.registryCC != nil {
@@ -142,11 +135,12 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		grpcfd.WithChainUnaryInterceptor(),
 	)
 	m.mgr = nsmgr.NewServer(m.ctx,
-		nsmMgr,
-		authorize.NewServer(),
 		spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime),
-		regConn,
-		clientOptions...,
+		nsmgr.WithName(configuration.Name),
+		nsmgr.WithURL(m.getPublicURL()),
+		nsmgr.WithAuthorizeServer(authorize.NewServer()),
+		nsmgr.WithRegistryClientConn(regConn),
+		nsmgr.WithDialOptions(clientOptions...),
 	)
 
 	// If we Listen on Unix socket for local connections we need to be sure folder are exist
