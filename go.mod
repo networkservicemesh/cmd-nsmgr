@@ -7,12 +7,12 @@ require (
 	github.com/edwarnicke/grpcfd v0.0.0-20210219150442-10fb469a6976
 	github.com/edwarnicke/serialize v1.0.7
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/networkservicemesh/api v0.0.0-20210323151719-3156ce7533e9
-	github.com/networkservicemesh/sdk v0.0.0-20210331094157-964332cc797d
+	github.com/networkservicemesh/api v0.0.0-20210331143834-12761e9f673f
+	github.com/networkservicemesh/sdk v0.0.0-20210331144417-68a6beb66557
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spiffe/go-spiffe/v2 v2.0.0-beta.2
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	golang.org/x/exp v0.0.0-20191030013958-a1ab85dbe136 // indirect
 	golang.org/x/sys v0.0.0-20201018230417-eeed37f84f13 // indirect
 	golang.org/x/text v0.3.2 // indirect
