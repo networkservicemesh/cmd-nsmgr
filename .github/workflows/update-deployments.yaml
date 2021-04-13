@@ -4,12 +4,16 @@ on:
   push:
     branches:
       - master
-
+  workflow_run:
+    types:
+      - completed
+    workflows:
+      - 'automerge'
 jobs:
   update-deployments-k8s:
     name: Update deployments-k8s
     runs-on: ubuntu-latest
-    if: github.repository != 'networkservicemesh/cmd-template'
+    if: ${{ github.repository != 'networkservicemesh/cmd-template' && (github.event.workflow_run.conclusion == 'success' && github.actor == 'nsmbot' || github.ref == 'refs/heads/master') }}
     steps:
       - name: Checkout ${{ github.repository }}
         uses: actions/checkout@v2
