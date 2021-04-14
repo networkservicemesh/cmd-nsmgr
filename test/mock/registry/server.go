@@ -22,7 +22,6 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/networkservicemesh/sdk/pkg/registry/common/setid"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 
 	"github.com/edwarnicke/serialize"
@@ -81,7 +80,7 @@ func NewServer(name string, listenOn *url.URL) Server {
 		executor: serialize.Executor{},
 	}
 	result.nsServer = chain.NewNamedNetworkServiceRegistryServer(name, memory.NewNetworkServiceRegistryServer())
-	result.nseServer = chain.NewNamedNetworkServiceEndpointRegistryServer(name, memory.NewNetworkServiceEndpointRegistryServer(), setid.NewNetworkServiceEndpointRegistryServer())
+	result.nseServer = chain.NewNamedNetworkServiceEndpointRegistryServer(name, memory.NewNetworkServiceEndpointRegistryServer())
 	return result
 }
 
