@@ -28,38 +28,31 @@ import (
 	"time"
 
 	"github.com/edwarnicke/grpcfd"
-
-	"github.com/networkservicemesh/sdk/pkg/registry/common/sendfd"
-	"github.com/networkservicemesh/sdk/pkg/registry/core/next"
-
 	"github.com/sirupsen/logrus"
-
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/clienturl"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/heal"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/core/adapters"
-	"github.com/networkservicemesh/sdk/pkg/registry/common/interpose"
-	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
-	"github.com/networkservicemesh/sdk/pkg/tools/addressof"
-	"github.com/networkservicemesh/sdk/pkg/tools/token"
-
-	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/setextracontext"
-	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
-
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-
-	"github.com/stretchr/testify/require"
 
 	"github.com/networkservicemesh/api/pkg/api/networkservice"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/cls"
 	"github.com/networkservicemesh/api/pkg/api/networkservice/mechanisms/kernel"
 	"github.com/networkservicemesh/api/pkg/api/registry"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/client"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/clienturl"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/heal"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/setextracontext"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/core/adapters"
+	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/interpose"
+	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
+	"github.com/networkservicemesh/sdk/pkg/tools/addressof"
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
+	"github.com/networkservicemesh/sdk/pkg/tools/token"
 )
 
 func serve(ctx context.Context, listenOn *url.URL, e endpoint.Endpoint, opt ...grpc.ServerOption) (<-chan error, *grpc.Server) {
@@ -126,11 +119,8 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	require.NotNil(t, nseErr)
 	require.NotNil(t, nseGRPC)
 
-	nsRegClient := registry.NewNetworkServiceRegistryClient(nsmClient)
-	regClient := next.NewNetworkServiceEndpointRegistryClient(
-		sendfd.NewNetworkServiceEndpointRegistryClient(),
-		registry.NewNetworkServiceEndpointRegistryClient(nsmClient),
-	)
+	nsRegClient := registryclient.NewNetworkServiceRegistryClient(nsmClient)
+	nseRegClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx, nsmClient)
 	logrus.Infof("Register network service")
 	ns, nserr := nsRegClient.Register(context.Background(), &registry.NetworkService{
 		Name: "my-service",
@@ -140,7 +130,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 
 	logrus.Infof("Register NSE")
 
-	nseReg, err := regClient.Register(context.Background(), &registry.NetworkServiceEndpoint{
+	nseReg, err := nseRegClient.Register(context.Background(), &registry.NetworkServiceEndpoint{
 		NetworkServiceNames: []string{ns.Name},
 		Url:                 nseURL.String(),
 	})
@@ -149,7 +139,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 
 	logrus.Infof("Register cross NSE")
 
-	f.registerCrossNSE(ctx, setup, regClient, t)
+	f.registerCrossNSE(ctx, setup, nseRegClient, t)
 
 	cl := client.NewClient(context.Background(), nsmClient, client.WithName("nsc-1"))
 
