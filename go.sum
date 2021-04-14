@@ -1,4 +1,6 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
+github.com/Bolodya1997/sdk v0.0.0-20210413055531-95bc35aed1e0 h1:p8GuRyU7Pamm64+7clQfkynM/IO83r/sUd3wN81dw3M=
+github.com/Bolodya1997/sdk v0.0.0-20210413055531-95bc35aed1e0/go.mod h1:phKpePEEcubYjKnVzfdqoTQCmzdcToXRdLDA1o8nYDM=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/DataDog/datadog-go v2.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/HdrHistogram/hdrhistogram-go v1.0.1 h1:GX8GAYDuhlFQnI2fRDHQhTlkHMz8bEn0jTI6LJU0mpw=
@@ -118,10 +120,9 @@ github.com/nats-io/nkeys v0.1.0/go.mod h1:xpnFELMwJABBLVhffcfd1MZx6VsNRFpEugbxzi
 github.com/nats-io/nkeys v0.1.3/go.mod h1:xpnFELMwJABBLVhffcfd1MZx6VsNRFpEugbxziKVo7w=
 github.com/nats-io/nuid v1.0.1/go.mod h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=
 github.com/nats-io/stan.go v0.6.0/go.mod h1:eIcD5bi3pqbHT/xIIvXMwvzXYElgouBvaVRftaE+eac=
+github.com/networkservicemesh/api v0.0.0-20210403165646-b0b334ca6872/go.mod h1:8daUQzI8sUvvNiPF6G3esmEvNQM/lJuAOobjdgtq2FM=
 github.com/networkservicemesh/api v0.0.0-20210413152715-ad449d9a9192 h1:xgkyncEQozAyge2edauHEKsutcCsgzcYZjgR0bH3y68=
 github.com/networkservicemesh/api v0.0.0-20210413152715-ad449d9a9192/go.mod h1:B6meq/SWjWR6bGXZdXPfbOeaBK+T1JayLdtEJQCsXKU=
-github.com/networkservicemesh/sdk v0.0.0-20210413153333-8ad73824271d h1:Sh6D7ASIp6f4JYEJcH56KdhJPJB1X0amTDbh0Z8RUm4=
-github.com/networkservicemesh/sdk v0.0.0-20210413153333-8ad73824271d/go.mod h1:A+nNIdNfNswppJlZBYQ5TUxKP7KMkKyjr94YzNY8I0o=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWbfPhv4DMiApHyliiK5xCTNVSPiaAs=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/olekukonko/tablewriter v0.0.1/go.mod h1:vsDQFd/mU46D+Z4whnwzcISnGGzXWMclvtLoiIKAKIo=

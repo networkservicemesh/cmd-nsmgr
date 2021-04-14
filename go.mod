@@ -4,8 +4,9 @@ go 1.16
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.0
+	github.com/edwarnicke/exechelper v1.0.2
 	github.com/edwarnicke/grpcfd v0.0.0-20210219150442-10fb469a6976
-	github.com/edwarnicke/serialize v1.0.7
+	github.com/golang/protobuf v1.4.3
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/networkservicemesh/api v0.0.0-20210413152715-ad449d9a9192
 	github.com/networkservicemesh/sdk v0.0.0-20210413153333-8ad73824271d
@@ -19,3 +20,5 @@ require (
 	google.golang.org/grpc v1.35.0
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
+
+replace github.com/networkservicemesh/sdk => github.com/Bolodya1997/sdk v0.0.0-20210413055531-95bc35aed1e0
