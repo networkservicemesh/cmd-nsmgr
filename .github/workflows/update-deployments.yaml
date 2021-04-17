@@ -3,7 +3,7 @@ name: Update deployments-k8s reposiotry
 on:
   push:
     branches:
-      - master
+      - main
   workflow_run:
     types:
       - completed
@@ -13,7 +13,7 @@ jobs:
   update-deployments-k8s:
     name: Update deployments-k8s
     runs-on: ubuntu-latest
-    if: ${{ github.repository != 'networkservicemesh/cmd-template' && (github.event.workflow_run.conclusion == 'success' && github.actor == 'nsmbot' || github.ref == 'refs/heads/master') }}
+    if: ${{ github.repository != 'networkservicemesh/cmd-template' && (github.event.workflow_run.conclusion == 'success' && github.actor == 'nsmbot' || github.ref == 'refs/heads/main') }}
     steps:
       - name: Checkout ${{ github.repository }}
         uses: actions/checkout@v2
@@ -34,7 +34,7 @@ jobs:
       - name: Create commit message
         working-directory: ${{ github.repository }}
         run: |
-          echo "Update application version to latest version from ${{ github.repository }}@master ${{ github.repository }}#${{ github.event.number }}" > /tmp/commit-message
+          echo "Update application version to latest version from ${{ github.repository }}@main ${{ github.repository }}#${{ github.event.number }}" > /tmp/commit-message
           echo "" >> /tmp/commit-message
           echo "${{ github.repository }} PR link: https://github.com/${{ github.repository }}/pull/${{ github.event.number }}" >> /tmp/commit-message
           echo "" >> /tmp/commit-message
