@@ -21,26 +21,35 @@ package main
 import (
 	"context"
 	"os"
+	"os/signal"
+	"syscall"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
+	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
-	"github.com/networkservicemesh/sdk/pkg/tools/signalctx"
-
-	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
-	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
 )
 
 func main() {
 	// Setup conmomod text to catch signals
 	// Setup logging
-	ctx := signalctx.WithSignals(context.Background())
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		// More Linux signals here
+		syscall.SIGHUP,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
+	defer cancel()
+
 	logrus.SetFormatter(&nested.Formatter{})
 	ctx = log.WithFields(ctx, map[string]interface{}{"cmd": os.Args[:1]})
 	ctx = log.WithLog(ctx, logruslogger.New(ctx))
