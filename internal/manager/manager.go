@@ -29,12 +29,6 @@ import (
 
 	"github.com/edwarnicke/grpcfd"
 
-	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
-
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
-	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
-	"github.com/networkservicemesh/sdk/pkg/tools/token"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
@@ -42,11 +36,16 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
+	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentracing"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
+	"github.com/networkservicemesh/sdk/pkg/tools/token"
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 )
@@ -140,7 +139,8 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		nsmgr.WithURL(m.getPublicURL()),
 		nsmgr.WithAuthorizeServer(authorize.NewServer()),
 		nsmgr.WithRegistryClientConn(regConn),
-		nsmgr.WithDialOptions(clientOptions...),
+		nsmgr.WithConnectOptions(
+			connect.WithDialOptions(clientOptions...)),
 	)
 
 	// If we Listen on Unix socket for local connections we need to be sure folder are exist
