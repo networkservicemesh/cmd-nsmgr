@@ -7,8 +7,8 @@ require (
 	github.com/edwarnicke/grpcfd v0.1.0
 	github.com/edwarnicke/serialize v1.0.7
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/networkservicemesh/api v0.0.0-20210523193133-30a6f075c760
-	github.com/networkservicemesh/sdk v0.0.0-20210527091756-a61f17ea5a13
+	github.com/networkservicemesh/api v0.0.0-20210527182901-ea452d7e044c
+	github.com/networkservicemesh/sdk v0.0.0-20210528062336-1864bcaad34d
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spiffe/go-spiffe/v2 v2.0.0-beta.2
