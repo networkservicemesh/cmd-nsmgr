@@ -45,6 +45,7 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/networkservicemesh/api/pkg/api/registry"
+
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
 	mockReg "github.com/networkservicemesh/cmd-nsmgr/test/mock/registry"
@@ -162,7 +163,13 @@ func (s *testSetup) CheckHeal() {
 func (s *testSetup) newClient(ctx context.Context) grpc.ClientConnInterface {
 	clientCtx, clientCancelFunc := context.WithTimeout(ctx, 5*time.Second)
 	defer clientCancelFunc()
-	grpcCC, err := grpc.DialContext(clientCtx, grpcutils.URLToTarget(&s.configuration.ListenOn[0]),
+	grpcCC, err := grpc.DialContext(clientCtx, grpcutils.URLToTarget(&s.configuration.ListenOn[0]), s.dialOptions()...)
+	require.Nil(s.t, err)
+	return grpcCC
+}
+
+func (s *testSetup) dialOptions() []grpc.DialOption {
+	return []grpc.DialOption{
 		grpc.WithTransportCredentials(manager.GrpcfdTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(s.Source, s.Source, tlsconfig.AuthorizeAny())))),
 		grpc.WithDefaultCallOptions(
 			grpc.WaitForReady(true),
@@ -170,9 +177,7 @@ func (s *testSetup) newClient(ctx context.Context) grpc.ClientConnInterface {
 		),
 		grpcfd.WithChainStreamInterceptor(),
 		grpcfd.WithChainUnaryInterceptor(),
-	)
-	require.Nil(s.t, err)
-	return grpcCC
+	}
 }
 
 func (s *testSetup) NewRegistryClient(ctx context.Context) registry.NetworkServiceEndpointRegistryClient {

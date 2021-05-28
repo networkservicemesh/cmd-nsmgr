@@ -119,8 +119,8 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	require.NotNil(t, nseErr)
 	require.NotNil(t, nseGRPC)
 
-	nsRegClient := registryclient.NewNetworkServiceRegistryClient(nsmClient)
-	nseRegClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx, nsmClient)
+	nsRegClient := registryclient.NewNetworkServiceRegistryClient(ctx, &setup.configuration.ListenOn[0], registryclient.WithDialOptions(setup.dialOptions()...))
+	nseRegClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx, &setup.configuration.ListenOn[0], registryclient.WithDialOptions(setup.dialOptions()...))
 	logrus.Infof("Register network service")
 	ns, nserr := nsRegClient.Register(context.Background(), &registry.NetworkService{
 		Name: "my-service",
