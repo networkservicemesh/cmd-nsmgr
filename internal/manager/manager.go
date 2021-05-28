@@ -58,7 +58,6 @@ type manager struct {
 	ctx           context.Context
 	configuration *config.Config
 	cancelFunc    context.CancelFunc
-	registryCC    *grpc.ClientConn
 	mgr           nsmgr.Nsmgr
 	source        *workloadapi.X509Source
 	svid          *x509svid.SVID
@@ -107,41 +106,41 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		return err
 	}
 
-	if err := m.connectRegistry(); err != nil {
-		log.FromContext(traceCtx).Errorf("failed to connect registry %v", err)
-		return err
-	}
-
-	// Construct NSMgr chain
-	var regConn grpc.ClientConnInterface
-	if m.registryCC != nil {
-		regConn = m.registryCC
-	}
-
-	clientOptions := append(
-		opentracing.WithTracingDial(),
-		// Default client security call options
-		grpc.WithTransportCredentials(
-			GrpcfdTransportCredentials(
-				credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
-			),
+	// Default client security call options
+	creds := grpc.WithTransportCredentials(
+		GrpcfdTransportCredentials(
+			credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
 		),
-		grpc.WithDefaultCallOptions(
-			grpc.WaitForReady(true),
-			grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(m.source, configuration.MaxTokenLifetime))),
-		),
-		grpcfd.WithChainStreamInterceptor(),
-		grpcfd.WithChainUnaryInterceptor(),
 	)
-	m.mgr = nsmgr.NewServer(m.ctx,
-		spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime),
+
+	mgrOptions := []nsmgr.Option{
 		nsmgr.WithName(configuration.Name),
 		nsmgr.WithURL(m.getPublicURL()),
 		nsmgr.WithAuthorizeServer(authorize.NewServer()),
-		nsmgr.WithRegistryClientConn(regConn),
 		nsmgr.WithConnectOptions(
-			connect.WithDialOptions(clientOptions...)),
-	)
+			connect.WithDialOptions(append(
+				opentracing.WithTracingDial(),
+				creds,
+				grpc.WithDefaultCallOptions(
+					grpc.WaitForReady(true),
+					grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(m.source, configuration.MaxTokenLifetime))),
+				),
+				grpcfd.WithChainStreamInterceptor(),
+				grpcfd.WithChainUnaryInterceptor(),
+			)...)),
+	}
+
+	if configuration.RegistryURL.String() != "" {
+		mgrOptions = append(mgrOptions, nsmgr.WithRegistry(&configuration.RegistryURL, append(
+			opentracing.WithTracingDial(),
+			creds,
+			grpc.WithDefaultCallOptions(
+				grpc.WaitForReady(true),
+			),
+		)...))
+	}
+
+	m.mgr = nsmgr.NewServer(m.ctx, spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime), mgrOptions...)
 
 	// If we Listen on Unix socket for local connections we need to be sure folder are exist
 	createListenFolders(configuration)
@@ -197,28 +196,6 @@ func waitErrChan(ctx context.Context, errChan <-chan error, m *manager) {
 		m.cancelFunc()
 		log.FromContext(ctx).Warnf("failed to serve: %v", err)
 	}
-}
-
-func (m *manager) connectRegistry() (err error) {
-	if m.configuration.RegistryURL.String() == "" {
-		logrus.Infof("NSM: No NSM registry passed, use memory registry")
-		m.registryCC = nil
-		return nil
-	}
-	traceCtx, finish := withTraceLogger(m.ctx, "dial-registry")
-	defer finish()
-
-	creds := grpc.WithTransportCredentials(GrpcfdTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny()))))
-	ctx, cancel := context.WithTimeout(traceCtx, 5*time.Second)
-	defer cancel()
-
-	logrus.Infof("NSM: Connecting to NSE registry %v", m.configuration.RegistryURL.String())
-	options := append(opentracing.WithTracingDial(), creds, grpc.WithDefaultCallOptions(grpc.WaitForReady(true)))
-	m.registryCC, err = grpc.DialContext(ctx, grpcutils.URLToTarget(&m.configuration.RegistryURL), options...)
-	if err != nil {
-		log.FromContext(traceCtx).Errorf("failed to dial NSE NsmgrRegistry: %v", err)
-	}
-	return
 }
 
 func (m *manager) defaultURL() *url.URL {
