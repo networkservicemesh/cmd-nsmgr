@@ -4,7 +4,11 @@ name: docker-push-ghcr
 on:
   push:
     branches: [main]
-
+  workflow_run:
+    types:
+      - completed
+    workflows:
+      - 'automerge'
 jobs:
   docker:
     runs-on: ubuntu-latest
