@@ -47,6 +47,11 @@ jobs:
         with:
           find: "${{ github.event.repository.name }}:.*\n"
           replace: "${{ github.event.repository.name }}:${{ steps.short-sha.outputs.sha }}\n"
+      - name: Find and Replace ${{ github.event.repository.name }}/ci version
+        uses: jacobtomlinson/gha-find-replace@master
+        with:
+          find: "${{ github.event.repository.name }}/ci:.*\n"
+          replace: "${{ github.event.repository.name }}/ci:${{ steps.short-sha.outputs.sha }}\n"
       - name: Push update to the deployments-k8s
         working-directory: networkservicemesh/deployments-k8s
         run: |
