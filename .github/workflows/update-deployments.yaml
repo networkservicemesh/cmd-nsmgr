@@ -24,7 +24,7 @@ jobs:
       - uses: benjlevesque/short-sha@v1.2
         id: short-sha
         with:
-          length: 8
+          length: 7
       - name: Checkout networkservicemesh/deployments-k8s
         uses: actions/checkout@v2
         with:
