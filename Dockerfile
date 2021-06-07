@@ -27,4 +27,4 @@ FROM alpine as runtime
 COPY --from=build /bin/nsmgr /bin/nsmgr
 COPY --from=build /bin/dlv /bin/dlv
 COPY --from=build /bin/grpc-health-probe /bin/grpc-health-probe
-CMD /bin/nsmgr
+ENTRYPOINT ["/bin/nsmgr"]
