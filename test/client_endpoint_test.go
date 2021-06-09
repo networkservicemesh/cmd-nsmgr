@@ -101,8 +101,6 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	nsmClient := setup.newClient(ctx)
-
 	rootDir, _ := ioutil.TempDir(os.TempDir(), "nsmgr")
 
 	nseURL := &url.URL{Scheme: "unix", Path: path.Join(rootDir, "endpoint.socket")}
@@ -141,7 +139,11 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 
 	f.registerCrossNSE(ctx, setup, nseRegClient, t)
 
-	cl := client.NewClient(context.Background(), nsmClient, client.WithName("nsc-1"))
+	cl := client.NewClient(context.Background(), &setup.configuration.ListenOn[0],
+		client.WithName("nsc-1"),
+		client.WithDialTimeout(5*time.Second),
+		client.WithDialOptions(setup.dialOptions()...),
+	)
 
 	var connection *networkservice.Connection
 
