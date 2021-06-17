@@ -75,7 +75,9 @@ func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGene
 		// Statically set the url we use to the unix file socket for the NSMgr
 		endpoint.WithAdditionalFunctionality(
 			clienturl.NewServer(connectTo),
-			heal.NewServer(ctx, addressof.NetworkServiceClient(adapters.NewServerToClient(crossNSe))),
+			heal.NewServer(ctx,
+				heal.WithOnHeal(addressof.NetworkServiceClient(adapters.NewServerToClient(crossNSe))),
+				heal.WithOnRestore(heal.OnRestoreIgnore)),
 			connect.NewServer(
 				ctx,
 				client.NewClientFactory(
