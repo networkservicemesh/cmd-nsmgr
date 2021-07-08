@@ -44,6 +44,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentracing"
+	"github.com/networkservicemesh/sdk/pkg/tools/resetting"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
 
@@ -148,11 +149,15 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	serverOptions := append(
 		opentracing.WithTracing(),
 		grpc.Creds(
-			GrpcfdTransportCredentials(
-				credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
+			resetting.NewCredentials(
+				GrpcfdTransportCredentials(
+					credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
+				),
+				m.source.Updated(),
 			),
 		),
 	)
+
 	m.server = grpc.NewServer(serverOptions...)
 	m.mgr.Register(m.server)
 
