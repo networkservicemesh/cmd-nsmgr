@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"github.com/edwarnicke/grpcfd"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
@@ -107,13 +106,6 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		return err
 	}
 
-	// Default client security call options
-	creds := grpc.WithTransportCredentials(
-		GrpcfdTransportCredentials(
-			credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
-		),
-	)
-
 	mgrOptions := []nsmgr.Option{
 		nsmgr.WithName(configuration.Name),
 		nsmgr.WithURL(m.getPublicURL()),
@@ -121,7 +113,14 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		nsmgr.WithConnectOptions(
 			connect.WithDialOptions(append(
 				opentracing.WithTracingDial(),
-				creds,
+				grpc.WithTransportCredentials(
+					resetting.NewCredentials(
+						GrpcfdTransportCredentials(
+							credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
+						),
+						m.source.Updated(),
+					),
+				),
 				grpc.WithDefaultCallOptions(
 					grpc.WaitForReady(true),
 					grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(m.source, configuration.MaxTokenLifetime))),
@@ -134,7 +133,11 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	if configuration.RegistryURL.String() != "" {
 		mgrOptions = append(mgrOptions, nsmgr.WithRegistry(&configuration.RegistryURL, append(
 			opentracing.WithTracingDial(),
-			creds,
+			grpc.WithTransportCredentials(
+				GrpcfdTransportCredentials(
+					credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
+				),
+			),
 			grpc.WithDefaultCallOptions(
 				grpc.WaitForReady(true),
 			),
@@ -149,11 +152,8 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	serverOptions := append(
 		opentracing.WithTracing(),
 		grpc.Creds(
-			resetting.NewCredentials(
-				GrpcfdTransportCredentials(
-					credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
-				),
-				m.source.Updated(),
+			GrpcfdTransportCredentials(
+				credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
 			),
 		),
 	)
