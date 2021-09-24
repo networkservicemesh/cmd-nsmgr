@@ -43,7 +43,6 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentracing"
-	"github.com/networkservicemesh/sdk/pkg/tools/resetting"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
 
@@ -114,11 +113,8 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 			connect.WithDialOptions(append(
 				opentracing.WithTracingDial(),
 				grpc.WithTransportCredentials(
-					resetting.NewCredentials(
-						GrpcfdTransportCredentials(
-							credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
-						),
-						m.source.Updated(),
+					GrpcfdTransportCredentials(
+						credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
 					),
 				),
 				grpc.WithDefaultCallOptions(
