@@ -82,10 +82,16 @@ func main() {
 
 	logrus.Infof("Using configuration: %v", cfg)
 
+	level, err := logrus.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		logrus.Fatalf("invalid log level %s", cfg.LogLevel)
+	}
+	logrus.SetLevel(level)
+
 	// Startup is finished
 	finish()
 
-	err := manager.RunNsmgr(traceCtx, cfg)
+	err = manager.RunNsmgr(traceCtx, cfg)
 	if err != nil {
 		logrus.Fatalf("error executing rootCmd: %v", err)
 	}

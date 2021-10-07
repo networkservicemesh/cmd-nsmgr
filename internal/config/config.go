@@ -28,4 +28,5 @@ type Config struct {
 	ListenOn         []url.URL     `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to listen on. tcp:// one will be used a public to register NSM." split_words:"true"`
 	RegistryURL      url.URL       `default:"tcp://localhost:5001" desc:"A NSE registry url to use" split_words:"true"`
 	MaxTokenLifetime time.Duration `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
+	LogLevel         string        `default:"INFO" desc:"Log level" split_words:"true"`
 }
