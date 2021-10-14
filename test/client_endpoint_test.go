@@ -47,6 +47,7 @@ import (
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/interpose"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
+	"github.com/networkservicemesh/sdk/pkg/tools/clienturlctx"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
@@ -135,13 +136,14 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 
 	f.registerCrossNSE(ctx, setup, nseRegClient, t)
 
-	cl := client.NewClient(context.Background(), &setup.configuration.ListenOn[0],
+	cl := client.NewClient(context.Background(),
 		client.WithName("nsc-1"),
 		client.WithDialTimeout(5*time.Second),
 		client.WithDialOptions(setup.dialOptions()...),
 	)
 
 	var connection *networkservice.Connection
+	ctx = clienturlctx.WithClientURL(ctx, &setup.configuration.ListenOn[0])
 
 	connection, err = cl.Request(ctx, &networkservice.NetworkServiceRequest{
 		MechanismPreferences: []*networkservice.Mechanism{
