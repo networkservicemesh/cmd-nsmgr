@@ -43,13 +43,11 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/clienturl"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/heal"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/setextracontext"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/core/adapters"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/interpose"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
-	"github.com/networkservicemesh/sdk/pkg/tools/addressof"
+	"github.com/networkservicemesh/sdk/pkg/tools/clienturlctx"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
@@ -75,15 +73,12 @@ func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGene
 		// Statically set the url we use to the unix file socket for the NSMgr
 		endpoint.WithAdditionalFunctionality(
 			clienturl.NewServer(connectTo),
-			heal.NewServer(ctx,
-				heal.WithOnHeal(addressof.NetworkServiceClient(adapters.NewServerToClient(crossNSe))),
-				heal.WithOnRestore(heal.OnRestoreIgnore)),
 			connect.NewServer(
-				ctx,
-				client.NewClientFactory(
+				client.NewClient(
+					ctx,
 					client.WithName(name),
+					client.WithDialOptions(clientDialOptions...),
 				),
-				connect.WithDialOptions(clientDialOptions...),
 			),
 		),
 	)
@@ -141,13 +136,14 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 
 	f.registerCrossNSE(ctx, setup, nseRegClient, t)
 
-	cl := client.NewClient(context.Background(), &setup.configuration.ListenOn[0],
+	cl := client.NewClient(context.Background(),
 		client.WithName("nsc-1"),
 		client.WithDialTimeout(5*time.Second),
 		client.WithDialOptions(setup.dialOptions()...),
 	)
 
 	var connection *networkservice.Connection
+	ctx = clienturlctx.WithClientURL(ctx, &setup.configuration.ListenOn[0])
 
 	connection, err = cl.Request(ctx, &networkservice.NetworkServiceRequest{
 		MechanismPreferences: []*networkservice.Mechanism{

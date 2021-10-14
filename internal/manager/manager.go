@@ -37,7 +37,6 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
@@ -109,9 +108,8 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		nsmgr.WithName(configuration.Name),
 		nsmgr.WithURL(m.getPublicURL()),
 		nsmgr.WithAuthorizeServer(authorize.NewServer()),
-		nsmgr.WithConnectOptions(
-			connect.WithDialOptions(append(
-				opentracing.WithTracingDial(),
+		nsmgr.WithDialOptions(
+			append(opentracing.WithTracingDial(),
 				grpc.WithTransportCredentials(
 					GrpcfdTransportCredentials(
 						credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
@@ -123,7 +121,8 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 				),
 				grpcfd.WithChainStreamInterceptor(),
 				grpcfd.WithChainUnaryInterceptor(),
-			)...)),
+			)...,
+		),
 	}
 
 	if configuration.RegistryURL.String() != "" {
