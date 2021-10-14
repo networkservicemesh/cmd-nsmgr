@@ -23,6 +23,7 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/interpose"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/memory"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
+	_ "github.com/networkservicemesh/sdk/pkg/tools/clienturlctx"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/debug"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/jaeger"
