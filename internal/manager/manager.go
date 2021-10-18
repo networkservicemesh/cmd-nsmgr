@@ -108,6 +108,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		nsmgr.WithName(configuration.Name),
 		nsmgr.WithURL(m.getPublicURL()),
 		nsmgr.WithAuthorizeServer(authorize.NewServer()),
+		nsmgr.WithDialTimeout(configuration.DialTimeout),
 		nsmgr.WithDialOptions(
 			append(opentracing.WithTracingDial(),
 				grpc.WithTransportCredentials(
