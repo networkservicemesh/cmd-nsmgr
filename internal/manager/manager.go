@@ -108,6 +108,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		nsmgr.WithName(configuration.Name),
 		nsmgr.WithURL(m.getPublicURL()),
 		nsmgr.WithAuthorizeServer(authorize.NewServer()),
+		nsmgr.WithDialTimeout(configuration.DialTimeout),
 		nsmgr.WithDialOptions(
 			append(opentracing.WithTracingDial(),
 				grpc.WithTransportCredentials(
@@ -116,7 +117,6 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 					),
 				),
 				grpc.WithDefaultCallOptions(
-					grpc.WaitForReady(true),
 					grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(m.source, configuration.MaxTokenLifetime))),
 				),
 				grpcfd.WithChainStreamInterceptor(),
