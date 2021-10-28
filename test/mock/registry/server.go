@@ -74,13 +74,13 @@ func (s *serverImpl) GetListenEndpointURI() *url.URL {
 }
 
 // NewServer - created a mock kubelet server to perform testing.
-func NewServer(name string, listenOn *url.URL) Server {
+func NewServer(listenOn *url.URL) Server {
 	result := &serverImpl{
 		listenOn: listenOn,
 		executor: serialize.Executor{},
 	}
-	result.nsServer = chain.NewNamedNetworkServiceRegistryServer(name, memory.NewNetworkServiceRegistryServer())
-	result.nseServer = chain.NewNamedNetworkServiceEndpointRegistryServer(name, memory.NewNetworkServiceEndpointRegistryServer())
+	result.nsServer = chain.NewNetworkServiceRegistryServer(memory.NewNetworkServiceRegistryServer())
+	result.nseServer = chain.NewNetworkServiceEndpointRegistryServer(memory.NewNetworkServiceEndpointRegistryServer())
 	return result
 }
 

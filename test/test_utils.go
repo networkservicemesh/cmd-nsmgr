@@ -106,7 +106,7 @@ func (s *testSetup) init() {
 	logrus.Infof("SVID: %q", s.SVid.ID)
 
 	// Setup registry
-	s.registryServer = mockReg.NewServer(s.configuration.Name, &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"})
+	s.registryServer = mockReg.NewServer(&url.URL{Scheme: "tcp", Host: "127.0.0.1:0"})
 
 	require.Nil(s.t, s.registryServer.Start(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(s.Source, s.Source, tlsconfig.AuthorizeAny())))))
 
