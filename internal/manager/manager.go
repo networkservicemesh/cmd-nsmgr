@@ -116,6 +116,10 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 						credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
 					),
 				),
+				grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
+					network, addr := grpcutils.TargetToNetAddr(s)
+					return (&net.Dialer{Timeout: configuration.DialTimeout}).DialContext(ctx, network, addr)
+				}),
 				grpc.WithDefaultCallOptions(
 					grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(m.source, configuration.MaxTokenLifetime))),
 				),
