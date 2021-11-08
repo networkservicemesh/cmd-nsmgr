@@ -21,16 +21,12 @@ jobs:
           path: ${{ github.repository }}
           repository: ${{ github.repository }}
           token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
-      - uses: benjlevesque/short-sha@v1.2
-        id: short-sha
+      - name: Find merged PR
+        uses: jwalton/gh-find-current-pr@v1.0.2
+        id: findPr
         with:
-          length: 7
-      - name: Checkout networkservicemesh/deployments-k8s
-        uses: actions/checkout@v2
-        with:
-          path: networkservicemesh/deployments-k8s
-          repository: networkservicemesh/deployments-k8s
-          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
+          sha: ${{ github.sha }}
+          github-token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
       - name: Create commit message
         working-directory: ${{ github.repository }}
         run: |
@@ -42,6 +38,16 @@ jobs:
           echo "$LOG_MSG" >> /tmp/commit-message
           echo "Commit Message:"
           cat /tmp/commit-message
+      - uses: benjlevesque/short-sha@v1.2
+        id: short-sha
+        with:
+          length: 7
+      - name: Checkout networkservicemesh/deployments-k8s
+        uses: actions/checkout@v2
+        with:
+          path: networkservicemesh/deployments-k8s
+          repository: networkservicemesh/deployments-k8s
+          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
       - name: Find and Replace version
         uses: jacobtomlinson/gha-find-replace@master
         with:
