@@ -27,7 +27,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edwarnicke/grpcfd"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/stretchr/testify/require"
@@ -41,11 +40,13 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/client"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/endpoint"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/clienturl"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/discover"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/retry"
+	"github.com/networkservicemesh/sdk/pkg/networkservice/common/roundrobin"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/setextracontext"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
-	"github.com/networkservicemesh/sdk/pkg/registry/common/interpose"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 	"github.com/networkservicemesh/sdk/pkg/tools/clienturlctx"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
@@ -67,12 +68,21 @@ type myEndpouint struct {
 // NewCrossNSE construct a new Cross connect test NSE
 func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGenerator token.GeneratorFunc, clientDialOptions ...grpc.DialOption) endpoint.Endpoint {
 	var crossNSe = &myEndpouint{}
+	nseClient := chain.NewNetworkServiceEndpointRegistryClient(
+		registryclient.NewNetworkServiceEndpointRegistryClient(ctx, connectTo,
+			registryclient.WithNSEAdditionalFunctionality(recvfd.NewNetworkServiceEndpointRegistryClient()),
+			registryclient.WithDialOptions(clientDialOptions...),
+		),
+	)
+	nsClient := registryclient.NewNetworkServiceRegistryClient(ctx, connectTo, registryclient.WithDialOptions(clientDialOptions...))
+
 	crossNSe.Endpoint = endpoint.NewServer(ctx, tokenGenerator,
 		endpoint.WithName(name),
 		endpoint.WithAuthorizeServer(authorize.NewServer()),
 		// Statically set the url we use to the unix file socket for the NSMgr
 		endpoint.WithAdditionalFunctionality(
-			clienturl.NewServer(connectTo),
+			discover.NewServer(nsClient, nseClient),
+			roundrobin.NewServer(),
 			connect.NewServer(
 				client.NewClient(
 					ctx,
@@ -109,7 +119,8 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 			endpoint.WithAuthorizeServer(authorize.NewServer()),
 			endpoint.WithAdditionalFunctionality(
 				setextracontext.NewServer(map[string]string{"perform": "ok"}))),
-		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
+		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))),
+	)
 
 	require.NotNil(t, nseErr)
 	require.NotNil(t, nseGRPC)
@@ -136,11 +147,11 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 
 	f.registerCrossNSE(ctx, setup, nseRegClient, t)
 
-	cl := client.NewClient(context.Background(),
+	cl := retry.NewClient(client.NewClient(context.Background(),
 		client.WithName("nsc-1"),
 		client.WithDialTimeout(5*time.Second),
 		client.WithDialOptions(setup.dialOptions()...),
-	)
+	))
 
 	var connection *networkservice.Connection
 	ctx = clienturlctx.WithClientURL(ctx, &setup.configuration.ListenOn[0])
@@ -157,7 +168,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, connection)
-	require.Equal(t, 5, len(connection.Path.PathSegments))
+	require.Equal(t, 4, len(connection.Path.PathSegments))
 
 	_, err = cl.Close(ctx, connection)
 	require.Nil(t, err)
@@ -167,23 +178,15 @@ func (f *NsmgrTestSuite) registerCrossNSE(ctx context.Context, setup *testSetup,
 	// Serve Cross Connect NSE
 	crossNSEURL := &url.URL{Scheme: "tcp", Host: "127.0.0.1:0"}
 	endpoint.Serve(ctx, crossNSEURL,
-		newCrossNSE(ctx, "cross-nse", &setup.configuration.ListenOn[0], spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime),
-			grpc.WithTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))),
-			grpc.WithDefaultCallOptions(
-				grpc.WaitForReady(true),
-				grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime))),
-			),
-			grpcfd.WithChainStreamInterceptor(),
-			grpcfd.WithChainUnaryInterceptor(),
-		),
+		newCrossNSE(ctx, "cross-nse", &setup.configuration.ListenOn[0], spiffejwt.TokenGeneratorFunc(setup.Source, setup.configuration.MaxTokenLifetime), setup.dialOptions()...),
 		grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(setup.Source, setup.Source, tlsconfig.AuthorizeAny()))))
 	logrus.Infof("Cross NSE listenON: %v", crossNSEURL.String())
 
 	// Register Cross NSE
-	crossRegClient := chain.NewNetworkServiceEndpointRegistryClient(interpose.NewNetworkServiceEndpointRegistryClient(), regClient)
-	_, err := crossRegClient.Register(ctx, &registry.NetworkServiceEndpoint{
-		Url:  crossNSEURL.String(),
-		Name: "cross-nse",
+	_, err := regClient.Register(ctx, &registry.NetworkServiceEndpoint{
+		Url:                 crossNSEURL.String(),
+		Name:                "cross-nse",
+		NetworkServiceNames: []string{"forwarder"},
 	})
 	require.Nil(t, err)
 }

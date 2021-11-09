@@ -142,7 +142,8 @@ func newSetup(t *testing.T) *testSetup {
 	setup := &testSetup{
 		t: t,
 		configuration: &config.Config{
-			Name: "nsmgr",
+			Name:                        "nsmgr",
+			ForwarderNetworkServiceName: "forwarder",
 		},
 	}
 	return setup
