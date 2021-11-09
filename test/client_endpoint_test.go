@@ -42,7 +42,6 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/discover"
-	"github.com/networkservicemesh/sdk/pkg/networkservice/common/retry"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/roundrobin"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/setextracontext"
 	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
@@ -147,11 +146,11 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 
 	f.registerCrossNSE(ctx, setup, nseRegClient, t)
 
-	cl := retry.NewClient(client.NewClient(context.Background(),
+	cl := client.NewClient(context.Background(),
 		client.WithName("nsc-1"),
 		client.WithDialTimeout(5*time.Second),
 		client.WithDialOptions(setup.dialOptions()...),
-	))
+	)
 
 	var connection *networkservice.Connection
 	ctx = clienturlctx.WithClientURL(ctx, &setup.configuration.ListenOn[0])

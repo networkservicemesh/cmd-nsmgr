@@ -18,7 +18,6 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/connect"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/discover"
-	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/retry"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/roundrobin"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/setextracontext"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
