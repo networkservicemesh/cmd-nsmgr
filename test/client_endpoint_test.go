@@ -136,6 +136,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	logrus.Infof("Register NSE")
 
 	nseReg, err := nseRegClient.Register(context.Background(), &registry.NetworkServiceEndpoint{
+		Name:                "nse-1",
 		NetworkServiceNames: []string{ns.Name},
 		Url:                 nseURL.String(),
 	})
