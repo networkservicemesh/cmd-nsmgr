@@ -29,6 +29,6 @@ type Config struct {
 	RegistryURL                 url.URL       `default:"tcp://localhost:5001" desc:"A NSE registry url to use" split_words:"true"`
 	MaxTokenLifetime            time.Duration `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
 	LogLevel                    string        `default:"INFO" desc:"Log level" split_words:"true"`
-	DialTimeout                 time.Duration `default:"50ms" desc:"Timeout for the dial the next endpoint" split_words:"true"`
+	DialTimeout                 time.Duration `default:"100ms" desc:"Timeout for the dial the next endpoint" split_words:"true"`
 	ForwarderNetworkServiceName string        `default:"forwarder" desc:"the default service name for forwarder discovering" split_words:"true"`
 }
