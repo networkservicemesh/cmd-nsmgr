@@ -96,7 +96,8 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	// Context to use for all things started in main
 	m.ctx, m.cancelFunc = context.WithCancel(ctx)
-	m.ctx = log.WithLog(m.ctx, logruslogger.New(m.ctx))
+	logCtx := log.WithLog(m.ctx, logruslogger.New(m.ctx))
+	logCtx = log.WithFields(logCtx, map[string]interface{}{"cmd": "Nsmgr"})
 
 	if err := m.initSecurity(); err != nil {
 		log.FromContext(traceCtx).Errorf("failed to create new spiffe TLS Peer %v", err)
@@ -160,11 +161,11 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	// Create GRPC server
 	m.startServers(m.server)
 
-	log.FromContext(m.ctx).Infof("Startup completed in %v", time.Since(starttime))
+	log.FromContext(logCtx).Infof("Startup completed in %v", time.Since(starttime))
 	starttime = time.Now()
 	<-m.ctx.Done()
 
-	log.FromContext(m.ctx).Infof("Exit requested. Uptime: %v", time.Since(starttime))
+	log.FromContext(logCtx).Infof("Exit requested. Uptime: %v", time.Since(starttime))
 	// If we here we need to call Stop
 	m.Stop()
 	return nil
@@ -195,7 +196,7 @@ func waitErrChan(ctx context.Context, errChan <-chan error, m *manager) {
 	case err := <-errChan:
 		// We need to cal cancel global context, since it could be multiple context of this kind
 		m.cancelFunc()
-		log.FromContext(ctx).Warnf("failed to serve: %v", err)
+		logrus.Warnf("failed to serve: %v", err)
 	}
 }
 
