@@ -28,14 +28,12 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
+	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
-	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
-
-	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
-	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
 )
 
 func main() {
@@ -52,7 +50,6 @@ func main() {
 	defer cancel()
 
 	logrus.SetFormatter(&nested.Formatter{})
-	ctx = log.WithFields(ctx, map[string]interface{}{"cmd": os.Args[:1]})
 	ctx = log.WithLog(ctx, logruslogger.New(ctx))
 
 	// ********************************************************************************
@@ -69,7 +66,6 @@ func main() {
 	log.EnableTracing(true)
 	jaegerCloser := jaeger.InitJaeger(ctx, "nsmgr")
 	defer func() { _ = jaegerCloser.Close() }()
-	traceCtx, finish := withTraceLogger(ctx, "nsmgr")
 
 	// Get cfg from environment
 	cfg := &config.Config{}
@@ -88,20 +84,8 @@ func main() {
 	}
 	logrus.SetLevel(level)
 
-	// Startup is finished
-	finish()
-
-	err = manager.RunNsmgr(traceCtx, cfg)
+	err = manager.RunNsmgr(ctx, cfg)
 	if err != nil {
 		logrus.Fatalf("error executing rootCmd: %v", err)
-	}
-}
-
-func withTraceLogger(ctx context.Context, operation string) (c context.Context, f func()) {
-	ctx, sLogger, span, sFinish := spanlogger.FromContext(ctx, operation)
-	ctx, lLogger, lFinish := logruslogger.FromSpan(ctx, span, operation)
-	return log.WithLog(ctx, sLogger, lLogger), func() {
-		sFinish()
-		lFinish()
 	}
 }

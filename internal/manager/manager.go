@@ -96,7 +96,6 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	// Context to use for all things started in main
 	m.ctx, m.cancelFunc = context.WithCancel(ctx)
-	m.ctx = log.WithFields(m.ctx, map[string]interface{}{"cmd": "Nsmgr"})
 	m.ctx = log.WithLog(m.ctx, logruslogger.New(m.ctx))
 
 	if err := m.initSecurity(); err != nil {
