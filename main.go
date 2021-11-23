@@ -24,7 +24,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	nested "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
 
@@ -34,6 +33,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
 )
 
 func main() {
@@ -49,14 +49,16 @@ func main() {
 	)
 	defer cancel()
 
-	logrus.SetFormatter(&nested.Formatter{})
-	ctx = log.WithLog(ctx, logruslogger.New(ctx))
+	traceCtx, finish := withTraceLogger(ctx, "nsmgr")
+	defer finish()
+
+	traceCtx = log.WithFields(traceCtx, map[string]interface{}{"cmd": os.Args[:1]})
 
 	// ********************************************************************************
 	// Debug self if necessary
 	// ********************************************************************************
 	if err := debug.Self(); err != nil {
-		log.FromContext(ctx).Infof("%s", err)
+		log.FromContext(traceCtx).Infof("%s", err)
 	}
 
 	// ********************************************************************************
@@ -64,28 +66,37 @@ func main() {
 	// ********************************************************************************
 	// Enable Jaeger
 	log.EnableTracing(true)
-	jaegerCloser := jaeger.InitJaeger(ctx, "nsmgr")
+	jaegerCloser := jaeger.InitJaeger(traceCtx, "nsmgr")
 	defer func() { _ = jaegerCloser.Close() }()
 
 	// Get cfg from environment
 	cfg := &config.Config{}
 	if err := envconfig.Usage("nsm", cfg); err != nil {
-		logrus.Fatal(err)
+		log.FromContext(traceCtx).Fatal(err)
 	}
 	if err := envconfig.Process("nsm", cfg); err != nil {
-		logrus.Fatalf("error processing cfg from env: %+v", err)
+		log.FromContext(traceCtx).Fatalf("error processing cfg from env: %+v", err)
 	}
 
-	logrus.Infof("Using configuration: %v", cfg)
+	log.FromContext(traceCtx).Infof("Using configuration: %v", cfg)
 
 	level, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		logrus.Fatalf("invalid log level %s", cfg.LogLevel)
+		log.FromContext(traceCtx).Fatalf("invalid log level %s", cfg.LogLevel)
 	}
 	logrus.SetLevel(level)
 
-	err = manager.RunNsmgr(ctx, cfg)
+	err = manager.RunNsmgr(ctx, traceCtx, cfg)
 	if err != nil {
-		logrus.Fatalf("error executing rootCmd: %v", err)
+		log.FromContext(traceCtx).Fatalf("error executing rootCmd: %v", err)
+	}
+}
+
+func withTraceLogger(ctx context.Context, operation string) (c context.Context, f func()) {
+	ctx, sLogger, span, sFinish := spanlogger.FromContext(ctx, operation)
+	ctx, lLogger, lFinish := logruslogger.FromSpan(ctx, span, operation)
+	return log.WithLog(ctx, sLogger, lLogger), func() {
+		sFinish()
+		lFinish()
 	}
 }

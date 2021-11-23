@@ -118,7 +118,7 @@ func (s *testSetup) Start() {
 	s.init()
 
 	go func() {
-		e := manager.RunNsmgr(s.ctx, s.configuration)
+		e := manager.RunNsmgr(s.ctx, s.ctx, s.configuration)
 		require.Nil(s.t, e)
 	}()
 

@@ -54,6 +54,7 @@ const (
 
 type manager struct {
 	ctx           context.Context
+	traceCtx      context.Context
 	configuration *config.Config
 	cancelFunc    context.CancelFunc
 	mgr           nsmgr.Nsmgr
@@ -84,23 +85,25 @@ func (m *manager) initSecurity() (err error) {
 }
 
 // RunNsmgr - start nsmgr.
-func RunNsmgr(ctx context.Context, configuration *config.Config) error {
+func RunNsmgr(ctx, traceCtx context.Context, configuration *config.Config) error {
 	starttime := time.Now()
 
 	m := &manager{
 		configuration: configuration,
 	}
+
 	log.EnableTracing(true)
-	traceCtx, finish := withTraceLogger(ctx, "start")
+	traceCtx, finish := withTraceLogger(traceCtx, "start")
 	defer finish()
+
+	traceCtx = log.WithFields(traceCtx, map[string]interface{}{"cmd": "Nsmgr"})
 
 	// Context to use for all things started in main
 	m.ctx, m.cancelFunc = context.WithCancel(ctx)
-	logCtx := log.WithLog(m.ctx, logruslogger.New(m.ctx))
-	logCtx = log.WithFields(logCtx, map[string]interface{}{"cmd": "Nsmgr"})
+	m.traceCtx = traceCtx
 
 	if err := m.initSecurity(); err != nil {
-		log.FromContext(traceCtx).Errorf("failed to create new spiffe TLS Peer %v", err)
+		log.FromContext(m.traceCtx).Errorf("failed to create new spiffe TLS Peer %v", err)
 		return err
 	}
 
@@ -161,11 +164,11 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	// Create GRPC server
 	m.startServers(m.server)
 
-	log.FromContext(logCtx).Infof("Startup completed in %v", time.Since(starttime))
+	log.FromContext(m.traceCtx).Infof("Startup completed in %v", time.Since(starttime))
 	starttime = time.Now()
 	<-m.ctx.Done()
 
-	log.FromContext(logCtx).Infof("Exit requested. Uptime: %v", time.Since(starttime))
+	log.FromContext(m.traceCtx).Infof("Exit requested. Uptime: %v", time.Since(starttime))
 	// If we here we need to call Stop
 	m.Stop()
 	return nil
@@ -196,7 +199,7 @@ func waitErrChan(ctx context.Context, errChan <-chan error, m *manager) {
 	case err := <-errChan:
 		// We need to cal cancel global context, since it could be multiple context of this kind
 		m.cancelFunc()
-		logrus.Warnf("failed to serve: %v", err)
+		log.FromContext(m.traceCtx).Warnf("failed to serve: %v", err)
 	}
 }
 
@@ -217,7 +220,7 @@ func (m *manager) getPublicURL() string {
 	}
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		logrus.Warn(err.Error())
+		log.FromContext(m.traceCtx).Warn(err.Error())
 		return u.String()
 	}
 	for _, a := range addrs {
@@ -239,7 +242,7 @@ func (m *manager) startServers(server *grpc.Server) {
 		go func() {
 			// Create a required number of servers
 			errChan := grpcutils.ListenAndServe(m.ctx, listenURL, server)
-			logrus.Infof("NSMGR Listening on: %v", listenURL.String())
+			log.FromContext(m.traceCtx).Infof("NSMGR Listening on: %v", listenURL.String())
 			// For public schemas we need to perform registation of nsmgr into registry.
 			wg.Done()
 
