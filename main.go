@@ -29,11 +29,10 @@ import (
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
+	"github.com/networkservicemesh/cmd-nsmgr/internal/utils"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
-	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
-	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
 )
 
 func main() {
@@ -49,16 +48,15 @@ func main() {
 	)
 	defer cancel()
 
-	traceCtx, finish := withTraceLogger(ctx, "nsmgr")
+	traceCtx := log.WithFields(ctx, map[string]interface{}{"cmd": os.Args[:1]})
+	traceLogger, finish := utils.GetTraceLogger(traceCtx, "nsmgr")
 	defer finish()
-
-	traceCtx = log.WithFields(traceCtx, map[string]interface{}{"cmd": os.Args[:1]})
 
 	// ********************************************************************************
 	// Debug self if necessary
 	// ********************************************************************************
 	if err := debug.Self(); err != nil {
-		log.FromContext(traceCtx).Infof("%s", err)
+		traceLogger.Infof("%s", err)
 	}
 
 	// ********************************************************************************
@@ -72,31 +70,22 @@ func main() {
 	// Get cfg from environment
 	cfg := &config.Config{}
 	if err := envconfig.Usage("nsm", cfg); err != nil {
-		log.FromContext(traceCtx).Fatal(err)
+		traceLogger.Fatal(err)
 	}
 	if err := envconfig.Process("nsm", cfg); err != nil {
-		log.FromContext(traceCtx).Fatalf("error processing cfg from env: %+v", err)
+		traceLogger.Fatalf("error processing cfg from env: %+v", err)
 	}
 
-	log.FromContext(traceCtx).Infof("Using configuration: %v", cfg)
+	traceLogger.Infof("Using configuration: %v", cfg)
 
 	level, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		log.FromContext(traceCtx).Fatalf("invalid log level %s", cfg.LogLevel)
+		traceLogger.Fatalf("invalid log level %s", cfg.LogLevel)
 	}
 	logrus.SetLevel(level)
 
-	err = manager.RunNsmgr(ctx, traceCtx, cfg)
+	err = manager.RunNsmgr(ctx, cfg)
 	if err != nil {
-		log.FromContext(traceCtx).Fatalf("error executing rootCmd: %v", err)
-	}
-}
-
-func withTraceLogger(ctx context.Context, operation string) (c context.Context, f func()) {
-	ctx, sLogger, span, sFinish := spanlogger.FromContext(ctx, operation)
-	ctx, lLogger, lFinish := logruslogger.FromSpan(ctx, span, operation)
-	return log.WithLog(ctx, sLogger, lLogger), func() {
-		sFinish()
-		lFinish()
+		traceLogger.Fatalf("error executing rootCmd: %v", err)
 	}
 }
