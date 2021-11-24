@@ -29,10 +29,11 @@ import (
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
-	"github.com/networkservicemesh/cmd-nsmgr/internal/utils"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
 )
 
 func main() {
@@ -48,15 +49,17 @@ func main() {
 	)
 	defer cancel()
 
-	traceCtx := log.WithFields(ctx, map[string]interface{}{"cmd": os.Args[:1]})
-	traceLogger, finish := utils.GetTraceLogger(traceCtx, "nsmgr")
-	defer finish()
+	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr")
+	defer sFinish()
+	_, lLogger, lFinish := logruslogger.FromSpan(ctx, span, "cmd-nsmgr")
+	defer lFinish()
+	logger := log.Combine(sLogger, lLogger)
 
 	// ********************************************************************************
 	// Debug self if necessary
 	// ********************************************************************************
 	if err := debug.Self(); err != nil {
-		traceLogger.Infof("%s", err)
+		logger.Infof("%s", err)
 	}
 
 	// ********************************************************************************
@@ -64,28 +67,28 @@ func main() {
 	// ********************************************************************************
 	// Enable Jaeger
 	log.EnableTracing(true)
-	jaegerCloser := jaeger.InitJaeger(traceCtx, "nsmgr")
+	jaegerCloser := jaeger.InitJaeger(log.WithLog(ctx, logger), "nsmgr")
 	defer func() { _ = jaegerCloser.Close() }()
 
 	// Get cfg from environment
 	cfg := &config.Config{}
 	if err := envconfig.Usage("nsm", cfg); err != nil {
-		traceLogger.Fatal(err)
+		logger.Fatal(err)
 	}
 	if err := envconfig.Process("nsm", cfg); err != nil {
-		traceLogger.Fatalf("error processing cfg from env: %+v", err)
+		logger.Fatalf("error processing cfg from env: %+v", err)
 	}
 
-	traceLogger.Infof("Using configuration: %v", cfg)
+	logger.Infof("Using configuration: %v", cfg)
 
 	level, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		traceLogger.Fatalf("invalid log level %s", cfg.LogLevel)
+		logger.Fatalf("invalid log level %s", cfg.LogLevel)
 	}
 	logrus.SetLevel(level)
 
-	err = manager.RunNsmgr(ctx, cfg)
+	err = manager.RunNsmgr(ctx, logger, cfg)
 	if err != nil {
-		traceLogger.Fatalf("error executing rootCmd: %v", err)
+		logger.Fatalf("error executing rootCmd: %v", err)
 	}
 }
