@@ -27,6 +27,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
+
 	"github.com/edwarnicke/grpcfd"
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
@@ -83,8 +86,14 @@ func (m *manager) initSecurity() (err error) {
 }
 
 // RunNsmgr - start nsmgr.
-func RunNsmgr(ctx context.Context, logger log.Logger, configuration *config.Config) error {
+func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	starttime := time.Now()
+
+	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr")
+	defer sFinish()
+	_, lLogger, lFinish := logruslogger.FromSpan(ctx, span, "cmd-nsmgr")
+	defer lFinish()
+	logger := log.Combine(sLogger, lLogger)
 
 	m := &manager{
 		configuration: configuration,

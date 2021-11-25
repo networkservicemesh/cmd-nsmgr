@@ -86,8 +86,9 @@ func main() {
 		logger.Fatalf("invalid log level %s", cfg.LogLevel)
 	}
 	logrus.SetLevel(level)
+	sFinish()
 
-	err = manager.RunNsmgr(ctx, logger, cfg)
+	err = manager.RunNsmgr(ctx, cfg)
 	if err != nil {
 		logger.Fatalf("error executing rootCmd: %v", err)
 	}

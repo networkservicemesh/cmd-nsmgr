@@ -26,8 +26,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
-
 	"github.com/edwarnicke/grpcfd"
 
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
@@ -120,7 +118,7 @@ func (s *testSetup) Start() {
 	s.init()
 
 	go func() {
-		e := manager.RunNsmgr(s.ctx, logruslogger.New(s.ctx), s.configuration)
+		e := manager.RunNsmgr(s.ctx, s.configuration)
 		require.Nil(s.t, e)
 	}()
 
