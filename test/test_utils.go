@@ -29,6 +29,7 @@ import (
 	"github.com/edwarnicke/grpcfd"
 
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
 
@@ -76,7 +77,7 @@ type testSetup struct {
 func (s *testSetup) init() {
 	s.ctx, s.cancel = context.WithCancel(context.Background())
 
-	s.ctx = log.WithFields(s.ctx, map[string]interface{}{"cmd": "NsmgrTestSetup"})
+	s.ctx = log.WithLog(s.ctx, logruslogger.New(s.ctx, map[string]interface{}{"cmd": "NsmgrTestSetup"}))
 
 	s.baseDir = TempFolder()
 

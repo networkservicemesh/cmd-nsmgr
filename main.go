@@ -51,7 +51,7 @@ func main() {
 
 	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr")
 	defer sFinish()
-	_, lLogger, lFinish := logruslogger.FromSpan(ctx, span, "cmd-nsmgr")
+	_, lLogger, lFinish := logruslogger.FromSpan(ctx, span, "cmd-nsmgr", map[string]interface{}{})
 	defer lFinish()
 	logger := log.Combine(sLogger, lLogger)
 
