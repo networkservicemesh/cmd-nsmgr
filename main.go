@@ -30,10 +30,10 @@ import (
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
-	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
 )
 
 func main() {
@@ -49,7 +49,7 @@ func main() {
 	)
 	defer cancel()
 
-	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr")
+	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr", map[string]interface{}{})
 	defer sFinish()
 	_, lLogger, lFinish := logruslogger.FromSpan(ctx, span, "cmd-nsmgr", map[string]interface{}{})
 	defer lFinish()
@@ -63,12 +63,19 @@ func main() {
 	}
 
 	// ********************************************************************************
-	// Configure open tracing
+	// Configure Open Telemetry
 	// ********************************************************************************
-	// Enable Jaeger
-	log.EnableTracing(true)
-	jaegerCloser := jaeger.InitJaeger(log.WithLog(ctx, logger), "nsmgr")
-	defer func() { _ = jaegerCloser.Close() }()
+
+	if os.Getenv("TELEMETRY") == "opentelemetry" {
+		collectorAddress := os.Getenv("COLLECTOR_ADDR")
+		log.EnableTracing(true)
+		spanExporter := opentelemetry.InitSpanExporter(ctx, collectorAddress)
+		metricExporter := opentelemetry.InitMetricExporter(ctx, collectorAddress)
+		o := opentelemetry.Init(ctx, spanExporter, metricExporter, "nsmgr")
+		defer o.Close()
+
+		logger.Info("OpenTelemetry has been initialized")
+	}
 
 	// Get cfg from environment
 	cfg := &config.Config{}
