@@ -1,6 +1,6 @@
-// Copyright (c) 2020 Cisco and/or its affiliates.
+// Copyright (c) 2020-2022 Cisco and/or its affiliates.
 //
-// Copyright (c) 2021 Doc.ai and/or its affiliates.
+// Copyright (c) 2021-2022 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -66,15 +66,17 @@ func main() {
 	// Configure Open Telemetry
 	// ********************************************************************************
 
-	if os.Getenv("TELEMETRY") == "opentelemetry" {
+	if os.Getenv("TELEMETRY") == "enabled" {
 		collectorAddress := os.Getenv("COLLECTOR_ADDR")
 		log.EnableTracing(true)
 		spanExporter := opentelemetry.InitSpanExporter(ctx, collectorAddress)
 		metricExporter := opentelemetry.InitMetricExporter(ctx, collectorAddress)
 		o := opentelemetry.Init(ctx, spanExporter, metricExporter, "nsmgr")
-		defer o.Close()
-
-		logger.Info("OpenTelemetry has been initialized")
+		defer func() {
+			if err := o.Close(); err != nil {
+				logger.Fatal(err)
+			}
+		}()
 	}
 
 	// Get cfg from environment
