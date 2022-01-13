@@ -72,21 +72,6 @@ func main() {
 		logger.Fatalf("error processing cfg from env: %+v", err)
 	}
 
-	// ********************************************************************************
-	// Configure Open Telemetry
-	// ********************************************************************************
-	if opentelemetry.IsEnabled() {
-		collectorAddress := cfg.OpenTelemetryCollectorURL
-		spanExporter := opentelemetry.InitSpanExporter(ctx, collectorAddress)
-		metricExporter := opentelemetry.InitMetricExporter(ctx, collectorAddress)
-		o := opentelemetry.Init(ctx, spanExporter, metricExporter, "nsmgr")
-		defer func() {
-			if err := o.Close(); err != nil {
-				logger.Fatal(err)
-			}
-		}()
-	}
-
 	logger.Infof("Using configuration: %v", cfg)
 
 	level, err := logrus.ParseLevel(cfg.LogLevel)
@@ -95,6 +80,19 @@ func main() {
 	}
 	logrus.SetLevel(level)
 	sFinish()
+
+	// Configure Open Telemetry
+	if opentelemetry.IsEnabled() {
+		collectorAddress := cfg.OpenTelemetryCollectorURL
+		spanExporter := opentelemetry.InitSpanExporter(ctx, collectorAddress)
+		metricExporter := opentelemetry.InitMetricExporter(ctx, collectorAddress)
+		o := opentelemetry.Init(ctx, spanExporter, metricExporter, "nsmgr")
+		defer func() {
+			if err = o.Close(); err != nil {
+				logger.Fatal(err)
+			}
+		}()
+	}
 
 	err = manager.RunNsmgr(ctx, cfg)
 	if err != nil {
