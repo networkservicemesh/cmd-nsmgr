@@ -31,4 +31,5 @@ type Config struct {
 	LogLevel                    string        `default:"INFO" desc:"Log level" split_words:"true"`
 	DialTimeout                 time.Duration `default:"100ms" desc:"Timeout for the dial the next endpoint" split_words:"true"`
 	ForwarderNetworkServiceName string        `default:"forwarder" desc:"the default service name for forwarder discovering" split_words:"true"`
+	OpenTelemetryCollectorURL   string        `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector URL"`
 }

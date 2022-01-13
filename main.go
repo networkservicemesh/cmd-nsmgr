@@ -49,6 +49,7 @@ func main() {
 	)
 	defer cancel()
 
+	log.EnableTracing(true)
 	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr", map[string]interface{}{})
 	defer sFinish()
 	_, lLogger, lFinish := logruslogger.FromSpan(ctx, span, "cmd-nsmgr", map[string]interface{}{})
@@ -62,13 +63,20 @@ func main() {
 		logger.Infof("%s", err)
 	}
 
+	// Get cfg from environment
+	cfg := &config.Config{}
+	if err := envconfig.Usage("nsm", cfg); err != nil {
+		logger.Fatal(err)
+	}
+	if err := envconfig.Process("nsm", cfg); err != nil {
+		logger.Fatalf("error processing cfg from env: %+v", err)
+	}
+
 	// ********************************************************************************
 	// Configure Open Telemetry
 	// ********************************************************************************
-
-	if os.Getenv("TELEMETRY") == "enabled" {
-		collectorAddress := os.Getenv("COLLECTOR_ADDR")
-		log.EnableTracing(true)
+	if opentelemetry.IsEnabled() {
+		collectorAddress := cfg.OpenTelemetryCollectorURL
 		spanExporter := opentelemetry.InitSpanExporter(ctx, collectorAddress)
 		metricExporter := opentelemetry.InitMetricExporter(ctx, collectorAddress)
 		o := opentelemetry.Init(ctx, spanExporter, metricExporter, "nsmgr")
@@ -77,15 +85,6 @@ func main() {
 				logger.Fatal(err)
 			}
 		}()
-	}
-
-	// Get cfg from environment
-	cfg := &config.Config{}
-	if err := envconfig.Usage("nsm", cfg); err != nil {
-		logger.Fatal(err)
-	}
-	if err := envconfig.Process("nsm", cfg); err != nil {
-		logger.Fatalf("error processing cfg from env: %+v", err)
 	}
 
 	logger.Infof("Using configuration: %v", cfg)
