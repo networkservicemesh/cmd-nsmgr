@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
+// Copyright (c) 2020-2022 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -42,9 +42,9 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
-	"github.com/networkservicemesh/sdk/pkg/tools/opentracing"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
+	"github.com/networkservicemesh/sdk/pkg/tools/tracing"
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 )
@@ -89,7 +89,7 @@ func (m *manager) initSecurity() (err error) {
 func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	starttime := time.Now()
 
-	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr")
+	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr", map[string]interface{}{})
 	defer sFinish()
 	_, lLogger, lFinish := logruslogger.FromSpan(ctx, span, "cmd-nsmgr", map[string]interface{}{})
 	defer lFinish()
@@ -115,7 +115,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		nsmgr.WithDialTimeout(configuration.DialTimeout),
 		nsmgr.WithForwarderServiceName(configuration.ForwarderNetworkServiceName),
 		nsmgr.WithDialOptions(
-			append(opentracing.WithTracingDial(),
+			append(tracing.WithTracingDial(),
 				grpc.WithTransportCredentials(
 					GrpcfdTransportCredentials(
 						credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
@@ -133,7 +133,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	if configuration.RegistryURL.String() != "" {
 		mgrOptions = append(mgrOptions, nsmgr.WithRegistry(&configuration.RegistryURL, append(
-			opentracing.WithTracingDial(),
+			tracing.WithTracingDial(),
 			grpc.WithTransportCredentials(
 				GrpcfdTransportCredentials(
 					credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
@@ -151,7 +151,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	createListenFolders(configuration)
 
 	serverOptions := append(
-		opentracing.WithTracing(),
+		tracing.WithTracing(),
 		grpc.Creds(
 			GrpcfdTransportCredentials(
 				credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())),

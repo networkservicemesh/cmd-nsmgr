@@ -1,6 +1,6 @@
-// Copyright (c) 2020 Cisco and/or its affiliates.
+// Copyright (c) 2020-2022 Cisco and/or its affiliates.
 //
-// Copyright (c) 2021 Doc.ai and/or its affiliates.
+// Copyright (c) 2021-2022 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -30,10 +30,10 @@ import (
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
-	"github.com/networkservicemesh/sdk/pkg/tools/jaeger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
 )
 
 func main() {
@@ -49,7 +49,8 @@ func main() {
 	)
 	defer cancel()
 
-	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr")
+	log.EnableTracing(true)
+	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr", map[string]interface{}{})
 	defer sFinish()
 	_, lLogger, lFinish := logruslogger.FromSpan(ctx, span, "cmd-nsmgr", map[string]interface{}{})
 	defer lFinish()
@@ -61,14 +62,6 @@ func main() {
 	if err := debug.Self(); err != nil {
 		logger.Infof("%s", err)
 	}
-
-	// ********************************************************************************
-	// Configure open tracing
-	// ********************************************************************************
-	// Enable Jaeger
-	log.EnableTracing(true)
-	jaegerCloser := jaeger.InitJaeger(log.WithLog(ctx, logger), "nsmgr")
-	defer func() { _ = jaegerCloser.Close() }()
 
 	// Get cfg from environment
 	cfg := &config.Config{}
@@ -87,6 +80,19 @@ func main() {
 	}
 	logrus.SetLevel(level)
 	sFinish()
+
+	// Configure Open Telemetry
+	if opentelemetry.IsEnabled() {
+		collectorAddress := cfg.OpenTelemetryEndpoint
+		spanExporter := opentelemetry.InitSpanExporter(ctx, collectorAddress)
+		metricExporter := opentelemetry.InitMetricExporter(ctx, collectorAddress)
+		o := opentelemetry.Init(ctx, spanExporter, metricExporter, cfg.Name)
+		defer func() {
+			if err = o.Close(); err != nil {
+				logger.Error(err.Error())
+			}
+		}()
+	}
 
 	err = manager.RunNsmgr(ctx, cfg)
 	if err != nil {
