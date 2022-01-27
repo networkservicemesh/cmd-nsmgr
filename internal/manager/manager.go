@@ -132,17 +132,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	}
 
 	if configuration.RegistryURL.String() != "" {
-		mgrOptions = append(mgrOptions, nsmgr.WithRegistry(&configuration.RegistryURL, append(
-			tracing.WithTracingDial(),
-			grpc.WithTransportCredentials(
-				GrpcfdTransportCredentials(
-					credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
-				),
-			),
-			grpc.WithDefaultCallOptions(
-				grpc.WaitForReady(true),
-			),
-		)...))
+		mgrOptions = append(mgrOptions, nsmgr.WithRegistry(&configuration.RegistryURL))
 	}
 
 	m.mgr = nsmgr.NewServer(m.ctx, spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime), mgrOptions...)
