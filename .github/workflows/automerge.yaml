@@ -5,13 +5,45 @@ on:
     types:
       - completed
     workflows:
-      - 'ci'
+      - "ci"
 jobs:
   automerge:
     name: Automerge
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.actor == 'nsmbot' }}
+    outputs:
+      pr_branch_ref: ${{ steps.check_mergeability.outputs.pr_branch_ref }}
     steps:
+      - name: Find current PR
+        uses: jwalton/gh-find-current-pr@v1.0.2
+        id: findPr
+        with:
+          sha: ${{ github.event.workflow_run.head_sha }}
+          github-token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
+      - name: Validate PR number
+        run: |
+          if [ -z ${{ steps.findPr.outputs.pr }} ]; then
+            echo "No opened PR was found for SHA ${{ github.event.workflow_run.head_sha }}"
+            exit 1
+          fi
+      - name: Get PR Info
+        id: get_pull_request_info
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/${{ github.repository }}/pulls/${{ steps.findPr.outputs.pr }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
+      - name: Check mergeability
+        id: check_mergeability
+        run: |
+          echo "Mergeable: ${{ fromJson(steps.get_pull_request_info.outputs.data).mergeable }}"
+          PR_BRANCH_REF=${{ fromJson(steps.get_pull_request_info.outputs.data).head.ref }}
+          echo "PR_BRANCH_REF: $PR_BRANCH_REF"
+          echo "::set-output name=pr_branch_ref::$PR_BRANCH_REF"
+          if [ "${{ fromJson(steps.get_pull_request_info.outputs.data).mergeable }}" != "true" ]; then
+            echo "PR has conflicts"
+            exit 1
+          fi
       - name: Check out the code
         uses: actions/checkout@v2
       - name: Fetch main
@@ -26,4 +58,58 @@ jobs:
         with:
           GITHUB_LOGIN: nsmbot
           ENABLED_FOR_MANUAL_CHANGES: true
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
+  resolve_conflicts:
+    name: Autoresolve Conflicts
+    needs: [automerge]
+    if: ${{ always() && needs.automerge.result == 'failure' && needs.automerge.outputs.pr_branch_ref != '' && github.actor == 'nsmbot' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
+      - name: Checkout PR branch
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ needs.automerge.outputs.pr_branch_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
+      - name: Verify conflicts only in go.mod/go.sum
+        run: |
+          CONFLICTING_FILES=$(git merge-tree $(git merge-base origin/main HEAD) origin/main HEAD | \
+            awk 'BEGIN {is_conflict = 0} /changed in both/{is_conflict = 1; next} /base/{if (is_conflict) {print $4; is_conflict = 0} next }' | \
+            { grep -vF "go.mod" || true; } | \
+            { grep -vF "go.sum" || true; })
+          if [[ -n $CONFLICTING_FILES ]]; then
+            echo "Conflicts can be resolved only in go.mod and go.sum files, but conflicts were found in other files: $CONFLICTING_FILES"
+            exit 1
+          fi
+      - name: Check number of retries
+        run: |
+          if [ $(git log --oneline | head -n 10 | grep -Fc "Automatically resolving conflicts in go.mod") -ge 3 ]; then
+            echo "Couldn't automatically resolve conflicts (number of re-tries is >= 3). Please, resolve them manually."
+            exit 1
+          fi
+      - name: Merge default branch
+        run: |
+          git config --global user.email "nsmbot@networkservicmesh.io"
+          git config --global user.name "NSMBot"
+          git config pull.rebase false
+          git pull -q origin main -s ort -X theirs
+      - name: Setup Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.16
+      - name: Re-generate go.sum
+        run: go mod tidy
+      - name: Push changes
+        run: |
+          echo "Automatically resolving conflicts in go.mod and updating dependency versions to the latest" >> /tmp/commit-message
+          git config --global user.email "nsmbot@networkservicmesh.io"
+          git config --global user.name "NSMBot"
+          git add -- go.sum go.mod
+          git commit -s -F /tmp/commit-message
+          echo "Force-pushing changes to ${{ needs.automerge.outputs.pr_branch_ref }}"
+          git push -f origin ${{ needs.automerge.outputs.pr_branch_ref }}
