@@ -28,16 +28,20 @@ jobs:
           echo Starting to check release branch in deployments-k8s repository
           branch=release/${{ steps.get-tag-step.outputs.tag }}
           echo branch to be checked - ${branch}
+
           if ! [ -z "$(git ls-remote --heads origin ${branch})" ]; then
             echo Branch ${branch} is already presented in deployments-k8s repository
             exit 0;
           fi
+
           echo Branch ${branch} is not presented in repository
           echo Starting to create ${branch} branch in deployments-k8s repository
+
           git config --global user.email "nsmbot@networkservicmesh.io"
           git config --global user.name "NSMBot"
           git checkout -b ${branch}
           git push -u origin ${branch} || exit 0;
+
   update-deployments-k8s:
     needs: check-branch
     name: Update deployments-k8s
@@ -63,12 +67,14 @@ jobs:
           echo "" >> /tmp/commit-message
           echo "Commit Message:"
           cat /tmp/commit-message
+
       - name: Checkout networkservicemesh/deployments-k8s
         uses: actions/checkout@v2
         with:
           path: networkservicemesh/deployments-k8s
           repository: networkservicemesh/deployments-k8s
           token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
+          ref: release/${{ steps.get-tag-step.outputs.tag }}
 
       - name: Find and Replace ci/${{ github.repository }} version
         uses: jacobtomlinson/gha-find-replace@master
@@ -85,6 +91,7 @@ jobs:
             echo Repository already up to date
             exit 0;
           fi
+
           branch=release/${{ github.repository }}/${{ steps.get-tag-step.outputs.tag }}
           git config --global user.email "nsmbot@networkservicmesh.io"
           git config --global user.name "NSMBot"
