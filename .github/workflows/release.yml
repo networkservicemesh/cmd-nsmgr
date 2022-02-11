@@ -6,10 +6,66 @@ on:
     types:
       - completed
     workflows:
-      - 'ci'
+      - "ci"
 jobs:
+  check-gomod-deps:
+    name: Check go.mod Dependencies
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_branch, 'release/') }}
+    steps:
+      - name: Get tag
+        run: |
+          branch=${{github.event.workflow_run.head_branch}}
+          echo '::set-output name=tag::'${branch#release/}
+        id: get-tag-step
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Check go.mod deps
+        run: |
+          cat go.mod |
+          grep 'github.com/networkservicemesh/.* v' |
+          grep -v 'github.com/networkservicemesh/.* ${{ steps.get-tag-step.outputs.tag }}' || exit 0;
+
+          exit 1;
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: check-gomod-deps
+    if: ${{ github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_branch, 'release/') }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          ref: refs/heads/${{github.event.workflow_run.head_branch}}
+
+      - name: Get tag
+        run: |
+          branch=${{github.event.workflow_run.head_branch}}
+          echo '::set-output name=tag::'${branch#release/}
+        id: get-tag-step
+
+      - name: Push tag ${{ steps.get-tag-step.outputs.tag }}
+        run: |
+          git status
+          git tag ${{ steps.get-tag-step.outputs.tag }}
+          git push origin ${{ steps.get-tag-step.outputs.tag }} -f
+
+      - name: Create release ${{ steps.get-tag-step.outputs.tag }}
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
+        with:
+          tag_name: refs/tags/${{ steps.get-tag-step.outputs.tag }}
+          release_name: ${{ steps.get-tag-step.outputs.tag }}
+          draft: false
+          prerelease: false
+
   docker:
     runs-on: ubuntu-latest
+    needs: check-gomod-deps
     if: ${{ github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_branch, 'release/') }}
     steps:
       - name: Get tag
