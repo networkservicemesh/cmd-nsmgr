@@ -156,7 +156,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository != 'networkservicemesh/cmd-template'
     steps:
-    - uses: actions/checkout@v2 
-    - uses: hadolint/hadolint-action@v1.6.0
-      with:
-        dockerfile: Dockerfile
+      - uses: actions/checkout@v2
+      - uses: hadolint/hadolint-action@v1.6.0
+        with:
+          dockerfile: Dockerfile
