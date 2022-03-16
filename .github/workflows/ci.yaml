@@ -150,3 +150,13 @@ jobs:
             pr-${{ steps.findPr.outputs.pr }}
             commit-${{ github.sha }}
             latest
+
+  dockerfile-lint:
+    name: dockerfile-lint
+    runs-on: ubuntu-latest
+    if: github.repository != 'networkservicemesh/cmd-template'
+    steps:
+    - uses: actions/checkout@v2 
+    - uses: hadolint/hadolint-action@v1.6.0
+      with:
+        dockerfile: Dockerfile
