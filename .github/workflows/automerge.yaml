@@ -102,6 +102,12 @@ jobs:
         uses: actions/setup-go@v1
         with:
           go-version: 1.16
+      - name: Update version manually
+        run: |
+          branch=${{ needs.automerge.outputs.pr_branch_ref }}
+          repository=${branch#update/networkservicemesh/}
+          echo Update ${repository} version in go.mod manually
+          go get -u github.com/networkservicemesh/${repository}@main
       - name: Re-generate go.sum
         run: go mod tidy
       - name: Push changes
