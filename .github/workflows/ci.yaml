@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Restrict dependencies on github.com/networkservicemesh/*
         env:
-          ALLOWED_REPOSITORIES: "sdk, api, sdk-k8s, sdk-vpp, sdk-sriov"
+          ALLOWED_REPOSITORIES: "api, sdk, sdk-k8s, sdk-kernel, sdk-sriov, sdk-vpp"
         run: |
           for i in $(grep github.com/networkservicemesh/ go.mod | grep -v '^module' | sed 's;.*\(github.com\/networkservicemesh\/[^ ]*\).*;\1;g');do
             if ! [ "$(echo ${ALLOWED_REPOSITORIES} | grep ${i#github.com/networkservicemesh/})" ]; then
