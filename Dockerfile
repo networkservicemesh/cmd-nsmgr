@@ -5,8 +5,9 @@ ENV GOBIN=/bin
 RUN go get github.com/go-delve/delve/cmd/dlv@v1.5.0
 RUN go get github.com/grpc-ecosystem/grpc-health-probe@v0.4.1
 RUN go get github.com/edwarnicke/dl
-RUN dl https://github.com/spiffe/spire/releases/download/v0.11.1/spire-0.11.1-linux-x86_64-glibc.tar.gz | \
-    tar -xzvf - -C /bin --strip=3 ./spire-0.11.1/bin/spire-server ./spire-0.11.1/bin/spire-agent
+RUN dl \
+    https://github.com/spiffe/spire/releases/download/v1.2.2/spire-1.2.2-linux-x86_64-glibc.tar.gz | \
+    tar -xzvf - -C /bin --strip=2 spire-1.2.2/bin/spire-server spire-1.2.2/bin/spire-agent
 
 FROM go as build
 WORKDIR /build
