@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v1
         with:
-          go-version: 1.16
+          go-version: 1.18
       - name: Build ${NAME}:${GITHUB_SHA::8} image
         run: docker build . -t "${ORG}/${NAME}:${GITHUB_SHA::8}" --target runtime
       - name: Build ${NAME}:latest image

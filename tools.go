@@ -14,8 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package imports is used for generating list of imports to optimize use of docker build cache
-package imports
+//go:build tools
 
-//go:generate bash -c "rm -rf imports*.go"
-//go:generate go run -exec "env GOOS=linux" github.com/edwarnicke/imports-gen
+package tools
+
+import (
+	_ "github.com/edwarnicke/imports-gen"
+)

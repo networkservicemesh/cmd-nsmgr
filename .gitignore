@@ -17,3 +17,6 @@
 .idea/
 junit/
 
+
+# Installed tools listed in tools.go
+/.bin
