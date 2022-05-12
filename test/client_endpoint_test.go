@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
+// Copyright (c) 2020-2022 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -68,12 +68,15 @@ type myEndpouint struct {
 func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGenerator token.GeneratorFunc, clientDialOptions ...grpc.DialOption) endpoint.Endpoint {
 	var crossNSe = &myEndpouint{}
 	nseClient := chain.NewNetworkServiceEndpointRegistryClient(
-		registryclient.NewNetworkServiceEndpointRegistryClient(ctx, connectTo,
+		registryclient.NewNetworkServiceEndpointRegistryClient(ctx,
+			registryclient.WithClientURL(connectTo),
 			registryclient.WithNSEAdditionalFunctionality(recvfd.NewNetworkServiceEndpointRegistryClient()),
 			registryclient.WithDialOptions(clientDialOptions...),
 		),
 	)
-	nsClient := registryclient.NewNetworkServiceRegistryClient(ctx, connectTo, registryclient.WithDialOptions(clientDialOptions...))
+	nsClient := registryclient.NewNetworkServiceRegistryClient(ctx,
+		registryclient.WithClientURL(connectTo),
+		registryclient.WithDialOptions(clientDialOptions...))
 
 	crossNSe.Endpoint = endpoint.NewServer(ctx, tokenGenerator,
 		endpoint.WithName(name),
@@ -124,8 +127,12 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	require.NotNil(t, nseErr)
 	require.NotNil(t, nseGRPC)
 
-	nsRegClient := registryclient.NewNetworkServiceRegistryClient(ctx, &setup.configuration.ListenOn[0], registryclient.WithDialOptions(setup.dialOptions()...))
-	nseRegClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx, &setup.configuration.ListenOn[0], registryclient.WithDialOptions(setup.dialOptions()...))
+	nsRegClient := registryclient.NewNetworkServiceRegistryClient(ctx,
+		registryclient.WithClientURL(&setup.configuration.ListenOn[0]),
+		registryclient.WithDialOptions(setup.dialOptions()...))
+	nseRegClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx,
+		registryclient.WithClientURL(&setup.configuration.ListenOn[0]),
+		registryclient.WithDialOptions(setup.dialOptions()...))
 	logrus.Infof("Register network service")
 	ns, nserr := nsRegClient.Register(context.Background(), &registry.NetworkService{
 		Name: "my-service",
