@@ -49,12 +49,12 @@ jobs:
           repository: networkservicemesh/deployments-k8s
           token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
       - name: Find and Replace version
-        uses: jacobtomlinson/gha-find-replace@master
+        uses: jacobtomlinson/gha-find-replace@v2
         with:
           find: "${{ github.event.repository.name }}:.*\n"
           replace: "${{ github.event.repository.name }}:${{ steps.short-sha.outputs.sha }}\n"
       - name: Find and Replace ci/${{ github.event.repository.name }} version
-        uses: jacobtomlinson/gha-find-replace@master
+        uses: jacobtomlinson/gha-find-replace@v2
         with:
           find: "ci/${{ github.event.repository.name }}:.*\n"
           replace: "ci/${{ github.event.repository.name }}:${{ steps.short-sha.outputs.sha }}\n"
