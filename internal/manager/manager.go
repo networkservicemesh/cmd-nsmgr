@@ -21,7 +21,6 @@ package manager
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net"
 	"net/url"
 	"os"
@@ -110,6 +109,8 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		m.logger.Errorf("failed to create new spiffe TLS Peer %v", err)
 		return err
 	}
+
+	u := genPublishableURL(configuration.ListenOn, m.logger)
 
 	tlsClientConfig := tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())
 	tlsClientConfig.MinVersion = tls.VersionTLS12
