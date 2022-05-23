@@ -1,4 +1,5 @@
 // Copyright (c) 2020-2022 Doc.ai and/or its affiliates.
+// Copyright (c) 2022 Nordix and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -19,7 +20,6 @@ package manager
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/url"
 	"os"
@@ -41,6 +41,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
+	"github.com/networkservicemesh/sdk/pkg/tools/listenonurl"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
@@ -108,9 +109,11 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		return err
 	}
 
+	u := genPublishableURL(configuration.ListenOn, m.logger)
+
 	mgrOptions := []nsmgr.Option{
 		nsmgr.WithName(configuration.Name),
-		nsmgr.WithURL(m.getPublicURL()),
+		nsmgr.WithURL(u.String()),
 		nsmgr.WithAuthorizeServer(authorize.NewServer()),
 		nsmgr.WithDialTimeout(configuration.DialTimeout),
 		nsmgr.WithForwarderServiceName(configuration.ForwarderNetworkServiceName),
@@ -185,36 +188,6 @@ func waitErrChan(ctx context.Context, errChan <-chan error, m *manager) {
 	}
 }
 
-func (m *manager) defaultURL() *url.URL {
-	for i := 0; i < len(m.configuration.ListenOn); i++ {
-		u := &m.configuration.ListenOn[i]
-		if u.Scheme == tcpSchema {
-			return u
-		}
-	}
-	return &m.configuration.ListenOn[0]
-}
-
-func (m *manager) getPublicURL() string {
-	u := m.defaultURL()
-	if u.Port() == "" || len(u.Host) != len(":")+len(u.Port()) {
-		return u.String()
-	}
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		m.logger.Warn(err.Error())
-		return u.String()
-	}
-	for _, a := range addrs {
-		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				return fmt.Sprintf("%v://%v:%v", tcpSchema, ipnet.IP.String(), u.Port())
-			}
-		}
-	}
-	return u.String()
-}
-
 func (m *manager) startServers(server *grpc.Server) {
 	var wg sync.WaitGroup
 	for i := 0; i < len(m.configuration.ListenOn); i++ {
@@ -232,4 +205,23 @@ func (m *manager) startServers(server *grpc.Server) {
 		}()
 	}
 	wg.Wait()
+}
+
+func genPublishableURL(listenOn []url.URL, logger log.Logger) *url.URL {
+	u := defaultURL(listenOn)
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		logger.Warn(err.Error())
+		return u
+	}
+	return listenonurl.GetPublicURL(addrs, u)
+}
+func defaultURL(listenOn []url.URL) *url.URL {
+	for i := 0; i < len(listenOn); i++ {
+		u := &listenOn[i]
+		if u.Scheme == tcpSchema {
+			return u
+		}
+	}
+	return &listenOn[0]
 }

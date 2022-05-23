@@ -27,6 +27,7 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/tools/clienturlctx"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/debug"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
+	_ "github.com/networkservicemesh/sdk/pkg/tools/listenonurl"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/log"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
