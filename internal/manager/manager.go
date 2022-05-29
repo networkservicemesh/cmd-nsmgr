@@ -20,6 +20,7 @@ package manager
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"net/url"
 	"os"
@@ -111,6 +112,11 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	u := genPublishableURL(configuration.ListenOn, m.logger)
 
+	tlsClientConfig := tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())
+	tlsClientConfig.MinVersion = tls.VersionTLS12
+	tlsServerConfig := tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())
+	tlsServerConfig.MinVersion = tls.VersionTLS12
+
 	mgrOptions := []nsmgr.Option{
 		nsmgr.WithName(configuration.Name),
 		nsmgr.WithURL(u.String()),
@@ -121,7 +127,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 			append(tracing.WithTracingDial(),
 				grpc.WithTransportCredentials(
 					GrpcfdTransportCredentials(
-						credentials.NewTLS(tlsconfig.MTLSClientConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
+						credentials.NewTLS(tlsClientConfig),
 					),
 				),
 				grpc.WithBlock(),
@@ -147,7 +153,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		tracing.WithTracing(),
 		grpc.Creds(
 			GrpcfdTransportCredentials(
-				credentials.NewTLS(tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())),
+				credentials.NewTLS(tlsServerConfig),
 			),
 		),
 	)
