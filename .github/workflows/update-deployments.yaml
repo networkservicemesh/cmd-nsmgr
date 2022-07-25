@@ -1,5 +1,5 @@
 ---
-name: Update deployments-k8s reposiotry
+name: Update deployments-k8s repository
 on:
   push:
     branches:
@@ -11,64 +11,7 @@ on:
       - 'automerge'
 jobs:
   update-deployments-k8s:
-    name: Update deployments-k8s
-    runs-on: ubuntu-latest
     if: ${{ github.repository != 'networkservicemesh/cmd-template' && (github.event.workflow_run.conclusion == 'success' && github.actor == 'nsmbot' || github.event_name == 'push') }}
-    steps:
-      - name: Checkout ${{ github.repository }}
-        uses: actions/checkout@v2
-        with:
-          path: ${{ github.repository }}
-          repository: ${{ github.repository }}
-          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
-      - name: Find merged PR
-        uses: jwalton/gh-find-current-pr@v1.0.2
-        id: findPr
-        with:
-          sha: ${{ github.sha }}
-          github-token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
-      - name: Create commit message
-        working-directory: ${{ github.repository }}
-        run: |
-          echo "Update go.mod and go.sum to latest version from ${{ github.repository }}@main" >> /tmp/commit-message
-          echo "PR link: https://github.com/${{ github.repository }}/pull/${{ steps.findPr.outputs.pr }}" >> /tmp/commit-message
-          echo "" >> /tmp/commit-message
-          LOG_MSG=$(git log --date=iso --pretty='format:Commit: %h%nAuthor: %an%nDate: %ad%nMessage:%n  - %B%n' -1 | sed '/^$/d;$d')
-          for((i=2;i<=18;i+=2)); do n=$(printf '%*s' $((i+2))) m=$(printf '%*s' $i) LOG_MSG=$(echo "$LOG_MSG" | tr '\n' '|' | sed "s/${m}-/${n}-/2g" | tr '|' '\n'); done
-          echo "$LOG_MSG" >> /tmp/commit-message
-          echo "Commit Message:"
-          cat /tmp/commit-message
-      - uses: benjlevesque/short-sha@v1.2
-        id: short-sha
-        with:
-          length: 7
-      - name: Checkout networkservicemesh/deployments-k8s
-        uses: actions/checkout@v2
-        with:
-          path: networkservicemesh/deployments-k8s
-          repository: networkservicemesh/deployments-k8s
-          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
-      - name: Find and Replace version
-        uses: jacobtomlinson/gha-find-replace@v2
-        with:
-          find: "${{ github.event.repository.name }}:.*\n"
-          replace: "${{ github.event.repository.name }}:${{ steps.short-sha.outputs.sha }}\n"
-      - name: Find and Replace ci/${{ github.event.repository.name }} version
-        uses: jacobtomlinson/gha-find-replace@v2
-        with:
-          find: "ci/${{ github.event.repository.name }}:.*\n"
-          replace: "ci/${{ github.event.repository.name }}:${{ steps.short-sha.outputs.sha }}\n"
-      - name: Push update to the deployments-k8s
-        working-directory: networkservicemesh/deployments-k8s
-        run: |
-          echo Starting to update repositotry deployments-k8s
-          git add -- .
-          if ! [ -n "$(git diff --cached --exit-code)" ]; then
-            echo Repository already up to date
-            exit 0;
-          fi
-          git config --global user.email "nsmbot@networkservicmesh.io"
-          git config --global user.name "NSMBot"
-          git commit -s -F /tmp/commit-message
-          git checkout -b update/${{ github.repository }}
-          git push -f origin update/${{ github.repository }}
+    uses: networkservicemesh/.github/.github/workflows/update-deployments.yaml@main
+    secrets:
+      token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
