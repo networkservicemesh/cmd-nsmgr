@@ -8,8 +8,8 @@ on:
     workflows:
       - "ci"
 jobs:
-  check-gomod-deps:
-    name: Check go.mod Dependencies
+  get-tag:
+    name: Get tag
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_branch, 'release/') }}
     outputs:
@@ -21,158 +21,43 @@ jobs:
           echo '::set-output name=tag::'${branch#release/}
         id: get-tag-step
 
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
-        with:
-          ref: refs/heads/${{github.event.workflow_run.head_branch}}
-
-      - name: Check go.mod deps
-        run: |
-          cat go.mod |
-          grep 'github.com/networkservicemesh/.* v' |
-          grep -v 'github.com/networkservicemesh/.* ${{ steps.get-tag-step.outputs.tag }}' || exit 0;
-
-          exit 1;
+  check-gomod-deps:
+    needs: get-tag
+    uses: networkservicemesh/.github/.github/workflows/check-gomod-deps.yaml@main
+    with:
+      tag: ${{ needs.get-tag.outputs.tag }}
 
   create-release:
-    name: Create Release
-    needs: check-gomod-deps
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_branch, 'release/') }}
-    outputs:
-      tag: ${{ needs.check-gomod-deps.outputs.tag }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-        with:
-          ref: refs/heads/${{github.event.workflow_run.head_branch}}
-
-      - name: Push tag ${{ needs.check-gomod-deps.outputs.tag }}
-        run: |
-          git status
-          git tag ${{ needs.check-gomod-deps.outputs.tag }}
-          git push origin ${{ needs.check-gomod-deps.outputs.tag }} -f
-
-      - name: Create release ${{ needs.check-gomod-deps.outputs.tag }}
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
-        with:
-          tag_name: refs/tags/${{ needs.check-gomod-deps.outputs.tag }}
-          release_name: ${{ needs.check-gomod-deps.outputs.tag }}
-          draft: false
-          prerelease: false
+    needs: [get-tag, check-gomod-deps]
+    uses: networkservicemesh/.github/.github/workflows/release.yaml@main
+    with:
+      tag: ${{ needs.get-tag.outputs.tag }}
+    secrets:
+      token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
 
   docker:
-    needs: check-gomod-deps
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_branch, 'release/') }}
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-        with:
-          ref: refs/heads/${{github.event.workflow_run.head_branch}}
-
-      - name: "Set up Docker Buildx"
-        uses: docker/setup-buildx-action@v1
-
-      - name: "Login to GitHub Container Registry"
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: "Build and push"
-        uses: docker/build-push-action@v2
-        with:
-          file: Dockerfile
-          context: .
-          push: true
-          tags: "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}:${{ needs.check-gomod-deps.outputs.tag }}"
+    needs: [get-tag, check-gomod-deps]
+    uses: networkservicemesh/.github/.github/workflows/release.yaml@main
+    with:
+      tag: ${{ needs.get-tag.outputs.tag }}
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
 
   check-branch:
     name: Check release branch in deployments-k8s
-    needs: create-release
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' && contains(github.event.workflow_run.head_branch, 'release/') }}
-    outputs:
-      tag: ${{ needs.create-release.outputs.tag }}
-    steps:
-      - name: Checkout networkservicemesh/deployments-k8s
-        uses: actions/checkout@v2
-        with:
-          path: networkservicemesh/deployments-k8s
-          repository: networkservicemesh/deployments-k8s
-          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
-
-      - name: check-release-branch
-        working-directory: networkservicemesh/deployments-k8s
-        run: |
-          echo Starting to check release branch in deployments-k8s repository
-          branch=release/${{ needs.create-release.outputs.tag }}
-          echo branch to be checked - ${branch}
-
-          if ! [ -z "$(git ls-remote --heads origin ${branch})" ]; then
-            echo Branch ${branch} is already presented in deployments-k8s repository
-            exit 0;
-          fi
-
-          echo Branch ${branch} is not presented in repository
-          echo Starting to create ${branch} branch in deployments-k8s repository
-
-          git config --global user.email "nsmbot@networkservicmesh.io"
-          git config --global user.name "NSMBot"
-          git checkout -b ${branch}
-          git push -u origin ${branch} || exit 0;
+    needs: [get-tag, create-release]
+    uses: networkservicemesh/.github/.github/workflows/check-release-branch.yaml@main
+    with:
+      tag: ${{ needs.get-tag.outputs.tag }}
+    secrets:
+      token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
 
   update-deployments-k8s:
     name: Update deployments-k8s
-    needs: check-branch
-    runs-on: ubuntu-latest
+    needs: [get-tag, check-branch]
     if: ${{ github.repository != 'networkservicemesh/cmd-template' }}
-    steps:
-      - name: Checkout ${{ github.repository }}
-        uses: actions/checkout@v2
-        with:
-          path: ${{ github.repository }}
-          repository: ${{ github.repository }}
-
-      - name: Create commit message
-        working-directory: ${{ github.repository }}
-        run: |
-          echo "Update docker images to the latest tag ${{ needs.check-branch.outputs.tag }}" >> /tmp/commit-message
-          echo "" >> /tmp/commit-message
-          echo "Commit Message:"
-          cat /tmp/commit-message
-
-      - name: Checkout networkservicemesh/deployments-k8s
-        uses: actions/checkout@v2
-        with:
-          path: networkservicemesh/deployments-k8s
-          repository: networkservicemesh/deployments-k8s
-          token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
-          ref: release/${{ needs.check-branch.outputs.tag }}
-
-      - name: Find and Replace ci/${{ github.repository }} version
-        uses: jacobtomlinson/gha-find-replace@master
-        with:
-          find: "ci/${{ github.event.repository.name }}:.*\n"
-          replace: "${{ github.event.repository.name }}:${{ needs.check-branch.outputs.tag }}\n"
-
-      - name: Push update to the deployments-k8s
-        working-directory: networkservicemesh/deployments-k8s
-        run: |
-          echo Starting to update repositotry deployments-k8s
-          git add -- .
-           if ! [ -n "$(git diff --cached --exit-code)" ]; then
-            echo Repository already up to date
-            exit 0;
-          fi
-
-          branch=release/${{ github.repository }}/${{ needs.check-branch.outputs.tag }}
-          git config --global user.email "nsmbot@networkservicmesh.io"
-          git config --global user.name "NSMBot"
-          git commit -s -F /tmp/commit-message
-          git checkout -b ${branch}
-          git push -f origin ${branch}
+    uses: networkservicemesh/.github/.github/workflows/release-deployments.yaml@main
+    with:
+      tag: ${{ needs.get-tag.outputs.tag }}
+    secrets:
+      token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}

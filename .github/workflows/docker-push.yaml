@@ -1,5 +1,5 @@
 ---
-name: push
+name: Docker push
 on:
   push:
     branches:
@@ -10,29 +10,9 @@ on:
     workflows:
       - 'automerge'
 jobs:
-  pushImage:
-    name: Push docker image
-    runs-on: ubuntu-latest
-    env:
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      DOCKER_USER: ${{ secrets.DOCKER_LOGIN }}
-      ORG: networkservicemeshci
-      CGO_ENABLED: 0
-      NAME: ${{ github.event.repository.name }}
+  push:
     if: ${{ github.repository != 'networkservicemesh/cmd-template' && (github.event.workflow_run.conclusion == 'success' && github.actor == 'nsmbot' || github.event_name == 'push') }}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v1
-        with:
-          go-version: 1.18.2
-      - name: Build ${NAME}:${GITHUB_SHA::8} image
-        run: docker build . -t "${ORG}/${NAME}:${GITHUB_SHA::8}" --target runtime
-      - name: Build ${NAME}:latest image
-        run: docker build . -t "${ORG}/${NAME}" --target runtime
-      - name: Push ${NAME} images
-        run: |
-          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-          docker push "${ORG}/${NAME}:${GITHUB_SHA::8}"
-          docker image rm "${ORG}/${NAME}:${GITHUB_SHA::8}"
-          docker push "${ORG}/${NAME}"
-          docker image rm "${ORG}/${NAME}"
+    uses: networkservicemesh/.github/.github/workflows/docker-push.yaml@main
+    secrets:
+      docker-login: ${{ secrets.DOCKER_LOGIN }}
+      docker-password: ${{ secrets.DOCKER_PASSWORD }}
