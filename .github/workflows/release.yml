@@ -37,7 +37,7 @@ jobs:
 
   docker:
     needs: [get-tag, check-gomod-deps]
-    uses: networkservicemesh/.github/.github/workflows/release.yaml@main
+    uses: networkservicemesh/.github/.github/workflows/docker-release.yaml@main
     with:
       tag: ${{ needs.get-tag.outputs.tag }}
     secrets:
