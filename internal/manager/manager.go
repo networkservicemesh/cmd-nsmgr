@@ -30,6 +30,7 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
+	"github.com/networkservicemesh/sdk/pkg/tools/spire"
 
 	"github.com/edwarnicke/grpcfd"
 	"github.com/sirupsen/logrus"
@@ -44,6 +45,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/listenonurl"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	authmonitor "github.com/networkservicemesh/sdk/pkg/tools/monitorconnection/authorize"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
 	"github.com/networkservicemesh/sdk/pkg/tools/tracing"
@@ -116,11 +118,12 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	tlsClientConfig.MinVersion = tls.VersionTLS12
 	tlsServerConfig := tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())
 	tlsServerConfig.MinVersion = tls.VersionTLS12
-
+	spiffeIDConnMap := spire.SpiffeIDConnectionMap{}
 	mgrOptions := []nsmgr.Option{
 		nsmgr.WithName(configuration.Name),
 		nsmgr.WithURL(u.String()),
-		nsmgr.WithAuthorizeServer(authorize.NewServer()),
+		nsmgr.WithAuthorizeServer(authorize.NewServer(authorize.WithSpiffeIDConnectionMap(&spiffeIDConnMap))),
+		nsmgr.WithAuthorizeMonitorServer(authmonitor.NewMonitorConnectionServer(authmonitor.WithSpiffeIDConnectionMap(&spiffeIDConnMap))),
 		nsmgr.WithDialTimeout(configuration.DialTimeout),
 		nsmgr.WithForwarderServiceName(configuration.ForwarderNetworkServiceName),
 		nsmgr.WithDialOptions(
