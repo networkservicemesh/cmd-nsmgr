@@ -123,7 +123,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		nsmgr.WithName(configuration.Name),
 		nsmgr.WithURL(u.String()),
 		nsmgr.WithAuthorizeServer(authorize.NewServer(authorize.WithSpiffeIDConnectionMap(&spiffeIDConnMap))),
-		nsmgr.WithAuthorizeMonitorServer(authmonitor.NewMonitorConnectionServer(authmonitor.WithSpiffeIDConnectionMap(&spiffeIDConnMap))),
+		nsmgr.WithAuthorizeMonitorConnectionServer(authmonitor.NewMonitorConnectionServer(authmonitor.WithSpiffeIDConnectionMap(&spiffeIDConnMap))),
 		nsmgr.WithDialTimeout(configuration.DialTimeout),
 		nsmgr.WithForwarderServiceName(configuration.ForwarderNetworkServiceName),
 		nsmgr.WithDialOptions(
