@@ -15,6 +15,8 @@ require (
 	google.golang.org/grpc v1.49.0
 )
 
+replace github.com/networkservicemesh/sdk => github.com/NikitaSkrynnik/sdk v0.5.1-0.20220804042021-32013e3e7cdd
+
 require (
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
