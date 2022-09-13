@@ -94,7 +94,6 @@ func main() {
 		}()
 	}
 
-	logger.Info("MY_INFO")
 	err = manager.RunNsmgr(ctx, cfg)
 	if err != nil {
 		logger.Fatalf("error executing rootCmd: %v", err)
