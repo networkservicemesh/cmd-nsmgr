@@ -42,6 +42,7 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
 	"github.com/networkservicemesh/sdk/pkg/networkservice/common/authorize"
+	registryauthorize "github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/listenonurl"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
@@ -124,6 +125,8 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		nsmgr.WithURL(u.String()),
 		nsmgr.WithAuthorizeServer(authorize.NewServer(authorize.WithSpiffeIDConnectionMap(&spiffeIDConnMap))),
 		nsmgr.WithAuthorizeMonitorConnectionServer(authmonitor.NewMonitorConnectionServer(authmonitor.WithSpiffeIDConnectionMap(&spiffeIDConnMap))),
+		nsmgr.WithAuthorizeNSERegistryServer(registryauthorize.NewNetworkServiceEndpointRegistryServer(registryauthorize.Any())),
+		nsmgr.WithAuthorizeNSRegistryServer(registryauthorize.NewNetworkServiceRegistryServer(registryauthorize.Any())),
 		nsmgr.WithDialTimeout(configuration.DialTimeout),
 		nsmgr.WithForwarderServiceName(configuration.ForwarderNetworkServiceName),
 		nsmgr.WithDialOptions(

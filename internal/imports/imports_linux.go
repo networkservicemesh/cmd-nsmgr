@@ -22,6 +22,7 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/roundrobin"
 	_ "github.com/networkservicemesh/sdk/pkg/networkservice/common/setextracontext"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
+	_ "github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/memory"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
