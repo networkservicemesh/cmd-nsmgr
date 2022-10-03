@@ -24,7 +24,14 @@ FROM test as debug
 CMD dlv -l :40000 --headless=true --api-version=2 test -test.v ./...
 
 FROM alpine as runtime
+ARG user=nsm-user
+ARG group=nsm-user
+ARG uid=10001
+ARG gid=10001
+RUN apk add libcap shadow
+RUN groupadd -g ${gid} ${user} && useradd -g ${gid} -l -M -u ${uid} ${user}
 COPY --from=build /bin/nsmgr /bin/nsmgr
+RUN /usr/sbin/setcap cap_dac_override=eip /bin/nsmgr
 COPY --from=build /bin/dlv /bin/dlv
 COPY --from=build /bin/grpc-health-probe /bin/grpc-health-probe
 ENTRYPOINT ["/bin/nsmgr"]
