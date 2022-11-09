@@ -23,6 +23,8 @@ jobs:
     needs: [check-mergeability]
     if: ${{ needs.check-mergeability.result == 'success' }}
     uses: networkservicemesh/.github/.github/workflows/automerge.yaml@main
+    secrets:
+      token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
 
   resolve_conflicts:
     needs: [check-mergeability]
