@@ -7,8 +7,8 @@ require (
 	github.com/edwarnicke/grpcfd v1.1.2
 	github.com/edwarnicke/serialize v1.0.7
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/networkservicemesh/api v1.6.2-0.20221108105251-f71f283feaa5
-	github.com/networkservicemesh/sdk v0.5.1-0.20221121202637-1d79bf8c68cd
+	github.com/networkservicemesh/api v1.6.2-0.20221123101008-30ff0ca88ee8
+	github.com/networkservicemesh/sdk v0.5.1-0.20221123121638-14f2490dae28
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spiffe/go-spiffe/v2 v2.0.0
 	github.com/stretchr/testify v1.8.0
