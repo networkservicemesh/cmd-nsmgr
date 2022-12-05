@@ -21,7 +21,6 @@ package test
 
 import (
 	"context"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -62,7 +61,7 @@ func TempFolder() string {
 	if err != nil {
 		logrus.Errorf("err: %v", err)
 	}
-	socketFile, _ := ioutil.TempDir(baseDir, "nsm_test")
+	socketFile, _ := os.MkdirTemp(baseDir, "nsm_test")
 	return socketFile
 }
 
