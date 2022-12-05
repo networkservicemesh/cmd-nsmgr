@@ -28,12 +28,11 @@ import (
 
 	"github.com/edwarnicke/grpcfd"
 
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
-
-	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
@@ -45,7 +44,9 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/health/grpc_health_v1"
 
-	"github.com/networkservicemesh/api/pkg/api/registry"
+	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
+
+	registryapi "github.com/networkservicemesh/api/pkg/api/registry"
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
@@ -182,7 +183,12 @@ func (s *testSetup) dialOptions() []grpc.DialOption {
 	}
 }
 
-func (s *testSetup) NewRegistryClient(ctx context.Context) registry.NetworkServiceEndpointRegistryClient {
-	grpcCC := s.newClient(ctx)
-	return registry.NewNetworkServiceEndpointRegistryClient(grpcCC)
+func (s *testSetup) NewRegistryClient(ctx context.Context) registryapi.NetworkServiceEndpointRegistryClient {
+	clientCtx, clientCancelFunc := context.WithTimeout(ctx, 50*time.Second)
+	defer clientCancelFunc()
+
+	return registryclient.NewNetworkServiceEndpointRegistryClient(
+		clientCtx,
+		registryclient.WithClientURL(&s.configuration.ListenOn[0]),
+		registryclient.WithDialOptions(s.dialOptions()...))
 }

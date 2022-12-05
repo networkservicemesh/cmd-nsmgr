@@ -31,6 +31,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/sdk/pkg/registry/common/grpcmetadata"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/memory"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 
@@ -80,8 +81,13 @@ func NewServer(listenOn *url.URL) Server {
 		listenOn: listenOn,
 		executor: serialize.Executor{},
 	}
-	result.nsServer = chain.NewNetworkServiceRegistryServer(memory.NewNetworkServiceRegistryServer())
-	result.nseServer = chain.NewNetworkServiceEndpointRegistryServer(memory.NewNetworkServiceEndpointRegistryServer())
+	result.nsServer = chain.NewNetworkServiceRegistryServer(
+		grpcmetadata.NewNetworkServiceRegistryServer(),
+		memory.NewNetworkServiceRegistryServer())
+	result.nseServer = chain.NewNetworkServiceEndpointRegistryServer(
+		grpcmetadata.NewNetworkServiceEndpointRegistryServer(),
+		memory.NewNetworkServiceEndpointRegistryServer())
+
 	return result
 }
 
