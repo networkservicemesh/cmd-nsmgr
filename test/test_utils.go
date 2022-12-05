@@ -1,5 +1,7 @@
 // Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
 //
+// Copyright (c) 2022 Cisco and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +21,6 @@ package test
 
 import (
 	"context"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -28,12 +29,13 @@ import (
 
 	"github.com/edwarnicke/grpcfd"
 
+	"github.com/networkservicemesh/sdk/pkg/registry/common/grpcmetadata"
+	"github.com/networkservicemesh/sdk/pkg/registry/core/next"
+	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
 	"github.com/networkservicemesh/sdk/pkg/tools/token"
-
-	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
@@ -45,7 +47,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/health/grpc_health_v1"
 
-	"github.com/networkservicemesh/api/pkg/api/registry"
+	registryapi "github.com/networkservicemesh/api/pkg/api/registry"
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
@@ -59,7 +61,7 @@ func TempFolder() string {
 	if err != nil {
 		logrus.Errorf("err: %v", err)
 	}
-	socketFile, _ := ioutil.TempDir(baseDir, "nsm_test")
+	socketFile, _ := os.MkdirTemp(baseDir, "nsm_test")
 	return socketFile
 }
 
@@ -182,7 +184,9 @@ func (s *testSetup) dialOptions() []grpc.DialOption {
 	}
 }
 
-func (s *testSetup) NewRegistryClient(ctx context.Context) registry.NetworkServiceEndpointRegistryClient {
+func (s *testSetup) NewRegistryClient(ctx context.Context) registryapi.NetworkServiceEndpointRegistryClient {
 	grpcCC := s.newClient(ctx)
-	return registry.NewNetworkServiceEndpointRegistryClient(grpcCC)
+	return next.NewNetworkServiceEndpointRegistryClient(
+		grpcmetadata.NewNetworkServiceEndpointRegistryClient(),
+		registryapi.NewNetworkServiceEndpointRegistryClient(grpcCC))
 }

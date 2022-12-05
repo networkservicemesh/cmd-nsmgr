@@ -19,7 +19,7 @@ package test
 
 import (
 	"context"
-	"io/ioutil"
+
 	"net/url"
 	"os"
 	"path"
@@ -110,7 +110,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	rootDir, _ := ioutil.TempDir(os.TempDir(), "nsmgr")
+	rootDir, _ := os.MkdirTemp(os.TempDir(), "nsmgr")
 
 	nseURL := &url.URL{Scheme: "unix", Path: path.Join(rootDir, "endpoint.socket")}
 
