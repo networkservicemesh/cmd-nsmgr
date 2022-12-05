@@ -28,6 +28,8 @@ import (
 
 	"github.com/edwarnicke/grpcfd"
 
+	"github.com/networkservicemesh/sdk/pkg/registry/common/grpcmetadata"
+	"github.com/networkservicemesh/sdk/pkg/registry/core/next"
 	"github.com/networkservicemesh/sdk/pkg/tools/grpcutils"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
@@ -43,8 +45,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/health/grpc_health_v1"
-
-	registryclient "github.com/networkservicemesh/sdk/pkg/registry/chains/client"
 
 	registryapi "github.com/networkservicemesh/api/pkg/api/registry"
 
@@ -184,11 +184,8 @@ func (s *testSetup) dialOptions() []grpc.DialOption {
 }
 
 func (s *testSetup) NewRegistryClient(ctx context.Context) registryapi.NetworkServiceEndpointRegistryClient {
-	clientCtx, clientCancelFunc := context.WithTimeout(ctx, 50*time.Second)
-	defer clientCancelFunc()
-
-	return registryclient.NewNetworkServiceEndpointRegistryClient(
-		clientCtx,
-		registryclient.WithClientURL(&s.configuration.ListenOn[0]),
-		registryclient.WithDialOptions(s.dialOptions()...))
+	grpcCC := s.newClient(ctx)
+	return next.NewNetworkServiceEndpointRegistryClient(
+		grpcmetadata.NewNetworkServiceEndpointRegistryClient(),
+		registryapi.NewNetworkServiceEndpointRegistryClient(grpcCC))
 }
