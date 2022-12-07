@@ -26,6 +26,7 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/grpcmetadata"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/memory"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/common/recvfd"
+	_ "github.com/networkservicemesh/sdk/pkg/registry/common/updatepath"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 	_ "github.com/networkservicemesh/sdk/pkg/registry/core/next"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/clienturlctx"
