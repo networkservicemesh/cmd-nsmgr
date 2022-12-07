@@ -25,6 +25,7 @@ import (
 	"os"
 
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
+	"github.com/networkservicemesh/sdk/pkg/tools/token"
 
 	"github.com/edwarnicke/serialize"
 
@@ -33,8 +34,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/networkservicemesh/sdk/pkg/registry/common/authorize"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/grpcmetadata"
 	"github.com/networkservicemesh/sdk/pkg/registry/common/memory"
+	"github.com/networkservicemesh/sdk/pkg/registry/common/updatepath"
 	"github.com/networkservicemesh/sdk/pkg/registry/core/chain"
 
 	"google.golang.org/grpc"
@@ -78,16 +81,20 @@ func (s *serverImpl) GetListenEndpointURI() *url.URL {
 }
 
 // NewServer - created a mock kubelet server to perform testing.
-func NewServer(listenOn *url.URL) Server {
+func NewServer(listenOn *url.URL, tokenGenerator token.GeneratorFunc) Server {
 	result := &serverImpl{
 		listenOn: listenOn,
 		executor: serialize.Executor{},
 	}
 	result.nsServer = chain.NewNetworkServiceRegistryServer(
 		grpcmetadata.NewNetworkServiceRegistryServer(),
+		updatepath.NewNetworkServiceRegistryServer(tokenGenerator),
+		authorize.NewNetworkServiceRegistryServer(),
 		memory.NewNetworkServiceRegistryServer())
 	result.nseServer = chain.NewNetworkServiceEndpointRegistryServer(
 		grpcmetadata.NewNetworkServiceEndpointRegistryServer(),
+		updatepath.NewNetworkServiceEndpointRegistryServer(tokenGenerator),
+		authorize.NewNetworkServiceEndpointRegistryServer(),
 		memory.NewNetworkServiceEndpointRegistryServer())
 
 	return result
