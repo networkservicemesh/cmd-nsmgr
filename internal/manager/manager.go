@@ -125,8 +125,10 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		nsmgr.WithURL(u.String()),
 		nsmgr.WithAuthorizeServer(authorize.NewServer(authorize.WithSpiffeIDConnectionMap(&spiffeIDConnMap))),
 		nsmgr.WithAuthorizeMonitorConnectionServer(authmonitor.NewMonitorConnectionServer(authmonitor.WithSpiffeIDConnectionMap(&spiffeIDConnMap))),
-		nsmgr.WithAuthorizeNSERegistryServer(registryauthorize.NewNetworkServiceEndpointRegistryServer(registryauthorize.Any())),
-		nsmgr.WithAuthorizeNSRegistryServer(registryauthorize.NewNetworkServiceRegistryServer(registryauthorize.Any())),
+		nsmgr.WithAuthorizeNSERegistryServer(registryauthorize.NewNetworkServiceEndpointRegistryServer()),
+		nsmgr.WithAuthorizeNSERegistryClient(registryauthorize.NewNetworkServiceEndpointRegistryClient()),
+		nsmgr.WithAuthorizeNSRegistryServer(registryauthorize.NewNetworkServiceRegistryServer()),
+		nsmgr.WithAuthorizeNSRegistryClient(registryauthorize.NewNetworkServiceRegistryClient()),
 		nsmgr.WithDialTimeout(configuration.DialTimeout),
 		nsmgr.WithForwarderServiceName(configuration.ForwarderNetworkServiceName),
 		nsmgr.WithDialOptions(
