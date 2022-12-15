@@ -125,10 +125,14 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		nsmgr.WithURL(u.String()),
 		nsmgr.WithAuthorizeServer(authorize.NewServer(authorize.WithSpiffeIDConnectionMap(&spiffeIDConnMap))),
 		nsmgr.WithAuthorizeMonitorConnectionServer(authmonitor.NewMonitorConnectionServer(authmonitor.WithSpiffeIDConnectionMap(&spiffeIDConnMap))),
-		nsmgr.WithAuthorizeNSERegistryServer(registryauthorize.NewNetworkServiceEndpointRegistryServer()),
-		nsmgr.WithAuthorizeNSERegistryClient(registryauthorize.NewNetworkServiceEndpointRegistryClient()),
-		nsmgr.WithAuthorizeNSRegistryServer(registryauthorize.NewNetworkServiceRegistryServer()),
-		nsmgr.WithAuthorizeNSRegistryClient(registryauthorize.NewNetworkServiceRegistryClient()),
+		nsmgr.WithAuthorizeNSERegistryServer(registryauthorize.NewNetworkServiceEndpointRegistryServer(
+			registryauthorize.WithPolicies(configuration.RegistryServerPolicies...))),
+		nsmgr.WithAuthorizeNSERegistryClient(registryauthorize.NewNetworkServiceEndpointRegistryClient(
+			registryauthorize.WithPolicies(configuration.RegistryClientPolicies...))),
+		nsmgr.WithAuthorizeNSRegistryServer(registryauthorize.NewNetworkServiceRegistryServer(
+			registryauthorize.WithPolicies(configuration.RegistryServerPolicies...))),
+		nsmgr.WithAuthorizeNSRegistryClient(registryauthorize.NewNetworkServiceRegistryClient(
+			registryauthorize.WithPolicies(configuration.RegistryClientPolicies...))),
 		nsmgr.WithDialTimeout(configuration.DialTimeout),
 		nsmgr.WithForwarderServiceName(configuration.ForwarderNetworkServiceName),
 		nsmgr.WithDialOptions(
