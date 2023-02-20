@@ -1,5 +1,8 @@
 // Copyright (c) 2020-2022 Doc.ai and/or its affiliates.
+//
 // Copyright (c) 2022 Nordix and/or its affiliates.
+//
+// Copyright (c) 2023 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -30,10 +33,11 @@ import (
 
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
-	"github.com/networkservicemesh/sdk/pkg/tools/spire"
 
+	"github.com/edwarnicke/genericsync"
 	"github.com/edwarnicke/grpcfd"
 	"github.com/sirupsen/logrus"
+	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
@@ -119,7 +123,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	tlsClientConfig.MinVersion = tls.VersionTLS12
 	tlsServerConfig := tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())
 	tlsServerConfig.MinVersion = tls.VersionTLS12
-	spiffeIDConnMap := spire.SpiffeIDConnectionMap{}
+	spiffeIDConnMap := genericsync.Map[spiffeid.ID, *genericsync.Map[string, struct{}]]{}
 	mgrOptions := []nsmgr.Option{
 		nsmgr.WithName(configuration.Name),
 		nsmgr.WithURL(u.String()),
