@@ -1,6 +1,6 @@
-// Copyright (c) 2020-2022 Cisco and/or its affiliates.
+// Copyright (c) 2020-2023 Cisco and/or its affiliates.
 //
-// Copyright (c) 2021-2022 Doc.ai and/or its affiliates.
+// Copyright (c) 2021-2023 Doc.ai and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -32,13 +32,11 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/debug"
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
-	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
 )
 
 func main() {
-	// Setup conmomod text to catch signals
-	// Setup logging
+	// Setup context to catch signals
 	ctx, cancel := signal.NotifyContext(
 		context.Background(),
 		os.Interrupt,
@@ -49,37 +47,33 @@ func main() {
 	)
 	defer cancel()
 
-	log.EnableTracing(true)
-	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr", map[string]interface{}{})
-	defer sFinish()
-	_, lLogger, lFinish := logruslogger.FromSpan(ctx, span, "cmd-nsmgr", map[string]interface{}{})
-	defer lFinish()
-	logger := log.Combine(sLogger, lLogger)
+	// Setup logging
+	ctx = log.WithLog(ctx, logruslogger.New(ctx, map[string]interface{}{"cmd": os.Args[0]}))
 
 	// ********************************************************************************
 	// Debug self if necessary
 	// ********************************************************************************
 	if err := debug.Self(); err != nil {
-		logger.Infof("%s", err)
+		log.FromContext(ctx).Infof("%s", err)
 	}
 
 	// Get cfg from environment
 	cfg := &config.Config{}
 	if err := envconfig.Usage("nsm", cfg); err != nil {
-		logger.Fatal(err)
+		log.FromContext(ctx).Fatal(err)
 	}
 	if err := envconfig.Process("nsm", cfg); err != nil {
-		logger.Fatalf("error processing cfg from env: %+v", err)
+		log.FromContext(ctx).Fatalf("error processing cfg from env: %+v", err)
 	}
 
-	logger.Infof("Using configuration: %v", cfg)
+	log.FromContext(ctx).Infof("Using configuration: %v", cfg)
 
 	level, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
-		logger.Fatalf("invalid log level %s", cfg.LogLevel)
+		log.FromContext(ctx).Fatalf("invalid log level %s", cfg.LogLevel)
 	}
 	logrus.SetLevel(level)
-	sFinish()
+	log.EnableTracing(level == logrus.TraceLevel)
 
 	// Configure Open Telemetry
 	if opentelemetry.IsEnabled() {
@@ -89,13 +83,13 @@ func main() {
 		o := opentelemetry.Init(ctx, spanExporter, metricExporter, cfg.Name)
 		defer func() {
 			if err = o.Close(); err != nil {
-				logger.Error(err.Error())
+				log.FromContext(ctx).Error(err.Error())
 			}
 		}()
 	}
 
 	err = manager.RunNsmgr(ctx, cfg)
 	if err != nil {
-		logger.Fatalf("error executing rootCmd: %v", err)
+		log.FromContext(ctx).Fatalf("error executing rootCmd: %v", err)
 	}
 }

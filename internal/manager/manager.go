@@ -31,9 +31,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
-	"github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
-
 	"github.com/edwarnicke/genericsync"
 	"github.com/edwarnicke/grpcfd"
 	"github.com/sirupsen/logrus"
@@ -98,15 +95,9 @@ func (m *manager) initSecurity() (err error) {
 func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	starttime := time.Now()
 
-	_, sLogger, span, sFinish := spanlogger.FromContext(ctx, "cmd-nsmgr", map[string]interface{}{})
-	defer sFinish()
-	_, lLogger, lFinish := logruslogger.FromSpan(ctx, span, "cmd-nsmgr", map[string]interface{}{})
-	defer lFinish()
-	logger := log.Combine(sLogger, lLogger)
-
 	m := &manager{
 		configuration: configuration,
-		logger:        logger,
+		logger:        log.FromContext(ctx),
 	}
 
 	// Context to use for all things started in main
