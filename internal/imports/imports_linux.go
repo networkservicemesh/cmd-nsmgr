@@ -36,7 +36,6 @@ import (
 	_ "github.com/networkservicemesh/sdk/pkg/tools/listenonurl"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/log"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
-	_ "github.com/networkservicemesh/sdk/pkg/tools/log/spanlogger"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/monitorconnection/authorize"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
 	_ "github.com/networkservicemesh/sdk/pkg/tools/spiffejwt"
