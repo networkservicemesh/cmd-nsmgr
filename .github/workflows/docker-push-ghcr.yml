@@ -4,11 +4,6 @@ name: Docker push ghcr
 on:
   push:
     branches: [main]
-  workflow_run:
-    types:
-      - completed
-    workflows:
-      - 'automerge'
 jobs:
   push:
     if: ${{ github.repository != 'networkservicemesh/cmd-template' && (github.event.workflow_run.conclusion == 'success' && github.actor == 'nsmbot' || github.event_name == 'push') }}
