@@ -24,7 +24,7 @@ jobs:
   restrictNSMDeps:
     uses: networkservicemesh/.github/.github/workflows/restrict-nsm-deps.yaml@main
     with:
-      allowed_repositories: "api, sdk, sdk-k8s, sdk-kernel, sdk-sriov, sdk-vpp, govpp"
+      allowed_repositories: "api, sdk, sdk-k8s, sdk-kernel, sdk-sriov, sdk-vpp, govpp, vpphelper"
 
   checkgomod:
     uses: networkservicemesh/.github/.github/workflows/checkgomod.yaml@main
