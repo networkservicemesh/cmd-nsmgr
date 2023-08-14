@@ -137,6 +137,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 						credentials.NewTLS(tlsClientConfig),
 					),
 				),
+				grpc.WithBlock(),
 				grpc.WithDefaultCallOptions(
 					grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(m.source, configuration.MaxTokenLifetime))),
 				),

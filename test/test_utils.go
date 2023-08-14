@@ -178,6 +178,7 @@ func (s *testSetup) dialOptions() []grpc.DialOption {
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(manager.GrpcfdTransportCredentials(credentials.NewTLS(tlsconfig.MTLSClientConfig(s.Source, s.Source, tlsconfig.AuthorizeAny())))),
 		grpc.WithDefaultCallOptions(
+			grpc.WaitForReady(true),
 			grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(s.Source, s.configuration.MaxTokenLifetime))),
 		),
 		grpcfd.WithChainStreamInterceptor(),
