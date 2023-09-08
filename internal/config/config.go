@@ -34,4 +34,6 @@ type Config struct {
 	DialTimeout                 time.Duration `default:"100ms" desc:"Timeout for the dial the next endpoint" split_words:"true"`
 	ForwarderNetworkServiceName string        `default:"forwarder" desc:"the default service name for forwarder discovering" split_words:"true"`
 	OpenTelemetryEndpoint       string        `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint"`
+	MetricsExporter             string        `default:"grpc-optl" desc:"OpenTelemetry metrics exporter (grpc-optl, prometheus)" split_words:"true"`
+	MetricsPort                 int           `default:"2223" desc:"Metrics will be exported through this port (used with prometheus exporter)" split_words:"true"`
 }
