@@ -1,5 +1,7 @@
 // Copyright (c) 2020-2022 Doc.ai and/or its affiliates.
 //
+// Copyright (c) 2023 Cisco and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +33,7 @@ type Config struct {
 	RegistryServerPolicies      []string      `default:"etc/nsm/opa/common/.*.rego,etc/nsm/opa/registry/.*.rego,etc/nsm/opa/server/.*.rego" desc:"paths to files and directories that contain registry server policies" split_words:"true"`
 	RegistryClientPolicies      []string      `default:"etc/nsm/opa/common/.*.rego,etc/nsm/opa/registry/.*.rego,etc/nsm/opa/client/.*.rego" desc:"paths to files and directories that contain registry client policies" split_words:"true"`
 	LogLevel                    string        `default:"INFO" desc:"Log level" split_words:"true"`
-	DialTimeout                 time.Duration `default:"100ms" desc:"Timeout for the dial the next endpoint" split_words:"true"`
+	DialTimeout                 time.Duration `default:"200ms" desc:"Timeout for the dial the next endpoint" split_words:"true"`
 	ForwarderNetworkServiceName string        `default:"forwarder" desc:"the default service name for forwarder discovering" split_words:"true"`
 	OpenTelemetryEndpoint       string        `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint"`
 }
