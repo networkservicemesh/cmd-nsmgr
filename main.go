@@ -27,10 +27,13 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
+	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
+	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
 
@@ -100,7 +103,7 @@ func main() {
 			metricReader = opentelemetry.InitPrometheusMetricExporter(ctx)
 		default:
 			if collectorAddress != "" {
-				metricReader = opentelemetry.InitOPTLMetricExporter(ctx, collectorAddress)
+				metricReader = opentelemetry.InitOPTLMetricExporter(ctx, collectorAddress, 10*time.Second)
 			}
 		}
 
@@ -124,12 +127,27 @@ func main() {
 }
 
 // https://github.com/open-telemetry/opentelemetry-go/blob/v1.17.0/example/prometheus/main.go
+// https://github.com/spiffe/go-spiffe/blob/v1.1.0/v2/examples/spiffe-http/server/main.go
 func serveMetrics(ctx context.Context, port int) {
 	log.FromContext(ctx).Infof(fmt.Sprintf("serving metrics at localhost:%d/metrics", port))
-	http.Handle("/metrics", promhttp.Handler())
-	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+
+	source, err := workloadapi.NewX509Source(ctx, workloadapi.WithClientOptions())
 	if err != nil {
-		fmt.Printf("error serving http: %v", err)
+		log.FromContext(ctx).Errorf("Unable to create X509Source: %v", err)
+		return
+	}
+	defer source.Close()
+
+	tlsConfig := tlsconfig.TLSServerConfig(source)
+	server := &http.Server{
+		Addr:      fmt.Sprintf(":%d", port),
+		TLSConfig: tlsConfig,
+	}
+
+	http.Handle("/metrics", promhttp.Handler())
+
+	if err := server.ListenAndServeTLS("", ""); err != nil {
+		log.FromContext(ctx).Errorf("error serving http: %v", err)
 		return
 	}
 }
