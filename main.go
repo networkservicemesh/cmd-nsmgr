@@ -20,12 +20,21 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/kelseyhightower/envconfig"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
+	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
+	"github.com/spiffe/go-spiffe/v2/workloadapi"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/networkservicemesh/cmd-nsmgr/internal/config"
 	"github.com/networkservicemesh/cmd-nsmgr/internal/manager"
@@ -77,10 +86,32 @@ func main() {
 
 	// Configure Open Telemetry
 	if opentelemetry.IsEnabled() {
+		metricExporter := strings.ToLower(cfg.MetricsExporter)
 		collectorAddress := cfg.OpenTelemetryEndpoint
-		spanExporter := opentelemetry.InitSpanExporter(ctx, collectorAddress)
-		metricExporter := opentelemetry.InitMetricExporter(ctx, collectorAddress)
-		o := opentelemetry.Init(ctx, spanExporter, metricExporter, cfg.Name)
+		var spanExporter trace.SpanExporter
+		var metricReader metric.Reader
+
+		if collectorAddress != "" {
+			spanExporter = opentelemetry.InitSpanExporter(ctx, collectorAddress)
+		}
+
+		var o io.Closer
+
+		switch metricExporter {
+		case "prometheus":
+			metricReader = opentelemetry.InitPrometheusMetricExporter(ctx)
+		default:
+			if collectorAddress != "" {
+				metricReader = opentelemetry.InitOPTLMetricExporter(ctx, collectorAddress)
+			}
+		}
+
+		o = opentelemetry.Init(ctx, spanExporter, metricReader, cfg.Name)
+
+		if metricExporter == "prometheus" {
+			go serveMetrics(ctx, cfg.MetricsPort)
+		}
+
 		defer func() {
 			if err = o.Close(); err != nil {
 				log.FromContext(ctx).Error(err.Error())
@@ -91,5 +122,31 @@ func main() {
 	err = manager.RunNsmgr(ctx, cfg)
 	if err != nil {
 		log.FromContext(ctx).Fatalf("error executing rootCmd: %v", err)
+	}
+}
+
+// https://github.com/open-telemetry/opentelemetry-go/blob/v1.17.0/example/prometheus/main.go
+// https://github.com/spiffe/go-spiffe/blob/v1.1.0/v2/examples/spiffe-http/server/main.go
+func serveMetrics(ctx context.Context, port int) {
+	log.FromContext(ctx).Infof(fmt.Sprintf("serving metrics at localhost:%d/metrics", port))
+
+	source, err := workloadapi.NewX509Source(ctx, workloadapi.WithClientOptions())
+	if err != nil {
+		log.FromContext(ctx).Errorf("Unable to create X509Source: %v", err)
+		return
+	}
+	defer source.Close()
+
+	tlsConfig := tlsconfig.TLSServerConfig(source)
+	server := &http.Server{
+		Addr:      fmt.Sprintf(":%d", port),
+		TLSConfig: tlsConfig,
+	}
+
+	http.Handle("/metrics", promhttp.Handler())
+
+	if err := server.ListenAndServeTLS("", ""); err != nil {
+		log.FromContext(ctx).Errorf("error serving http: %v", err)
+		return
 	}
 }
