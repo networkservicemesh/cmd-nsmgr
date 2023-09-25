@@ -73,7 +73,7 @@ func main() {
 		log.FromContext(ctx).Fatalf("invalid log level %s", cfg.LogLevel)
 	}
 	logrus.SetLevel(level)
-	log.EnableTracing(level == logrus.TraceLevel)
+	log.EnableTracing(true)
 
 	// Configure Open Telemetry
 	if opentelemetry.IsEnabled() {
