@@ -79,7 +79,7 @@ func main() {
 	if opentelemetry.IsEnabled() {
 		collectorAddress := cfg.OpenTelemetryEndpoint
 		spanExporter := opentelemetry.InitSpanExporter(ctx, collectorAddress)
-		metricExporter := opentelemetry.InitMetricExporter(ctx, collectorAddress)
+		metricExporter := opentelemetry.InitOPTLMetricExporter(ctx, collectorAddress, cfg.MetricsExportInterval)
 		o := opentelemetry.Init(ctx, spanExporter, metricExporter, cfg.Name)
 		defer func() {
 			if err = o.Close(); err != nil {
