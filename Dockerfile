@@ -1,4 +1,4 @@
-FROM golang:1.20.5-buster as go
+FROM arm64v8/golang:1.20.5-buster as go
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
 ENV GOBIN=/bin
