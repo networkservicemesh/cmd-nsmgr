@@ -15,6 +15,11 @@ jobs:
   shellcheck:
     uses: networkservicemesh/.github/.github/workflows/shellcheck.yaml@main
 
+  check-env:
+    uses: networkservicemesh/.github/.github/workflows/env-check.yaml@main
+    with:
+      prefix: "NSM_"
+
   golangci-lint:
     uses: networkservicemesh/.github/.github/workflows/golangci-lint.yaml@main
 
