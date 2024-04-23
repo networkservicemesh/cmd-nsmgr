@@ -43,18 +43,9 @@ jobs:
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
 
-  check-branch:
-    name: Check release branch in deployments-k8s
-    needs: [get-tag, create-release]
-    uses: networkservicemesh/.github/.github/workflows/check-release-branch.yaml@main
-    with:
-      tag: ${{ needs.get-tag.outputs.tag }}
-    secrets:
-      token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
-
   update-deployments-k8s:
     name: Update deployments-k8s
-    needs: [get-tag, check-branch]
+    needs: [get-tag, create-release]
     if: ${{ github.repository != 'networkservicemesh/cmd-template' }}
     uses: networkservicemesh/.github/.github/workflows/release-deployments.yaml@main
     with:
