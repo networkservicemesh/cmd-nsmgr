@@ -1,6 +1,6 @@
-// Copyright (c) 2020-2023 Cisco and/or its affiliates.
-//
 // Copyright (c) 2021-2023 Doc.ai and/or its affiliates.
+//
+// Copyright (c) 2020-2024 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -40,7 +40,7 @@ import (
 
 func main() {
 	go func() {
-		http.ListenAndServe("localhost:6060", nil)
+		_ = http.ListenAndServe("localhost:6060", nil)
 	}()
 	// Setup context to catch signals
 	ctx, cancel := signal.NotifyContext(
