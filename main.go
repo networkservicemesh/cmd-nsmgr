@@ -33,9 +33,15 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
+
+	"net/http"
+	_ "net/http/pprof"
 )
 
 func main() {
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
 	// Setup context to catch signals
 	ctx, cancel := signal.NotifyContext(
 		context.Background(),
