@@ -11,11 +11,11 @@ RUN tar xzvf spire-1.8.0-linux-${BUILDARCH}-musl.tar.gz -C /bin --strip=2 spire-
 
 FROM go as build
 WORKDIR /build
-COPY go.mod go.sum ./
-COPY ./local ./local
-COPY ./internal/imports ./internal/imports
-RUN go build ./internal/imports
 COPY . .
+COPY ./local/go.mod go.mod
+COPY ./local/go.sum go.sum
+RUN cat go.mod
+RUN cat go.sum
 RUN go build -o /bin/nsmgr .
 
 FROM build as test
