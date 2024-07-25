@@ -37,4 +37,6 @@ type Config struct {
 	ForwarderNetworkServiceName string        `default:"forwarder" desc:"the default service name for forwarder discovering" split_words:"true"`
 	OpenTelemetryEndpoint       string        `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint" split_words:"true"`
 	MetricsExportInterval       time.Duration `default:"10s" desc:"interval between mertics exports" split_words:"true"`
+	PprofEnabled                bool          `default:"false" desc:"is pprof enabled" split_words:"true"`
+	PprofPort                   string        `default:"6060" desc:"pprof port" split_words:"true"`
 }
