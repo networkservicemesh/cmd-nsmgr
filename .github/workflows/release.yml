@@ -43,6 +43,15 @@ jobs:
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
 
+  docker-profiler:
+    needs: [get-tag, check-gomod-deps]
+    uses: networkservicemesh/.github/.github/workflows/docker-release.yaml@main
+    with:
+      tag: ${{ needs.get-tag.outputs.tag }}-pprof
+      build-args: BUILD_TAGS=profiler
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+
   update-deployments-k8s:
     name: Update deployments-k8s
     needs: [get-tag, create-release]
