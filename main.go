@@ -20,12 +20,9 @@ package main
 
 import (
 	"context"
-	"net/http"
-	"net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
@@ -36,6 +33,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
+	"github.com/networkservicemesh/sdk/pkg/tools/pprof"
 )
 
 func main() {
@@ -93,30 +91,7 @@ func main() {
 
 	// Configure pprof
 	if cfg.PprofEnabled {
-		log.FromContext(ctx).Infof("Profiler is enabled. Listening on %s", cfg.PprofPort)
-		mux := http.NewServeMux()
-		mux.HandleFunc("/debug/pprof/", pprof.Index)
-		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-		mux.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
-		mux.Handle("/debug/pprof/block", pprof.Handler("block"))
-		mux.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
-		mux.Handle("/debug/pprof/heap", pprof.Handler("heap"))
-		mux.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
-		mux.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
-		server := &http.Server{
-			Addr:         "localhost:" + cfg.PprofPort,
-			Handler:      mux,
-			ReadTimeout:  10 * time.Second,
-			WriteTimeout: 10 * time.Second,
-		}
-		go func() {
-			if err = server.ListenAndServe(); err != nil {
-				log.FromContext(ctx).Errorf("Failed to start profiler: %s", err.Error())
-			}
-		}()
+		go pprof.Init(ctx, cfg.PprofPort)
 	}
 
 	err = manager.RunNsmgr(ctx, cfg)
