@@ -1,6 +1,6 @@
-// Copyright (c) 2020-2023 Cisco and/or its affiliates.
-//
 // Copyright (c) 2021-2023 Doc.ai and/or its affiliates.
+//
+// Copyright (c) 2020-2024 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -33,6 +33,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
+	"github.com/networkservicemesh/sdk/pkg/tools/pprof"
 )
 
 func main() {
@@ -86,6 +87,11 @@ func main() {
 				log.FromContext(ctx).Error(err.Error())
 			}
 		}()
+	}
+
+	// Configure pprof
+	if cfg.PprofEnabled {
+		go pprof.Init(ctx, cfg.PprofPort)
 	}
 
 	err = manager.RunNsmgr(ctx, cfg)
