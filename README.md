@@ -39,7 +39,7 @@ docker build .
 * `NSM_OPEN_TELEMETRY_ENDPOINT`        - OpenTelemetry Collector Endpoint (default: "otel-collector.observability.svc.cluster.local:4317")
 * `NSM_METRICS_EXPORT_INTERVAL`        - interval between mertics exports (default: "10s")
 * `NSM_PPROF_ENABLED`                  - is pprof enabled (default: "false")
-* `NSM_PPROF_PORT`                     - pprof port (default: "6060")
+* `NSM_PPROF_LISTEN_ON`                - pprof URL to ListenAndServe (default: "localhost:6060")
 
 # Testing
 

@@ -33,7 +33,7 @@ import (
 	"github.com/networkservicemesh/sdk/pkg/tools/log"
 	"github.com/networkservicemesh/sdk/pkg/tools/log/logruslogger"
 	"github.com/networkservicemesh/sdk/pkg/tools/opentelemetry"
-	"github.com/networkservicemesh/sdk/pkg/tools/pprof"
+	"github.com/networkservicemesh/sdk/pkg/tools/pprofutils"
 )
 
 func main() {
@@ -91,7 +91,7 @@ func main() {
 
 	// Configure pprof
 	if cfg.PprofEnabled {
-		go pprof.Init(ctx, cfg.PprofPort)
+		go pprofutils.ListenAndServe(ctx, cfg.PprofListenOn)
 	}
 
 	err = manager.RunNsmgr(ctx, cfg)
