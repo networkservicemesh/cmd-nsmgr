@@ -79,14 +79,18 @@ func (m *manager) Stop() {
 func (m *manager) initSecurity() (err error) {
 	// Get a X509Source
 	logrus.Infof("Obtaining X509 Certificate Source")
+
 	m.source, err = workloadapi.NewX509Source(m.ctx)
+
 	if err != nil {
 		logrus.Fatalf("error getting x509 source: %+v", err)
 	}
+
 	m.svid, err = m.source.GetX509SVID()
 	if err != nil {
 		logrus.Fatalf("error getting x509 svid: %+v", err)
 	}
+
 	logrus.Infof("SVID: %q", m.svid.ID)
 	return
 }
@@ -173,6 +177,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	m.logger.Infof("Startup completed in %v", time.Since(starttime))
 	starttime = time.Now()
+
 	<-m.ctx.Done()
 
 	m.logger.Infof("Exit requested. Uptime: %v", time.Since(starttime))
@@ -205,6 +210,7 @@ func (m *manager) startServers(server *grpc.Server) {
 	var wg sync.WaitGroup
 	for i := 0; i < len(m.configuration.ListenOn); i++ {
 		listenURL := &m.configuration.ListenOn[i]
+
 		wg.Add(1)
 
 		go func() {
@@ -217,12 +223,14 @@ func (m *manager) startServers(server *grpc.Server) {
 			waitErrChan(m.ctx, errChan, m)
 		}()
 	}
+
 	wg.Wait()
 }
 
 func genPublishableURL(listenOn []url.URL, logger log.Logger) *url.URL {
 	u := defaultURL(listenOn)
 	addrs, err := net.InterfaceAddrs()
+
 	if err != nil {
 		logger.Warn(err.Error())
 		return u

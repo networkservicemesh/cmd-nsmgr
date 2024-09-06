@@ -46,6 +46,7 @@ type NsmgrTestSuite struct {
 func (f *NsmgrTestSuite) SetupSuite() {
 	logrus.SetFormatter(&nested.Formatter{})
 	log.EnableTracing(true)
+
 	f.ctx, f.cancel = context.WithCancel(context.Background())
 
 	// Run spire
@@ -66,6 +67,7 @@ func (f *NsmgrTestSuite) SetupSuite() {
 }
 func (f *NsmgrTestSuite) TearDownSuite() {
 	f.cancel()
+
 	if f.spireErrCh != nil {
 		for {
 			_, ok := <-f.spireErrCh

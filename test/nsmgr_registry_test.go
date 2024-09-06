@@ -31,6 +31,7 @@ func (f *NsmgrTestSuite) TestNSMgrEndpointRegister() {
 	t := f.T()
 	setup := newSetup(t)
 	setup.Start()
+
 	defer setup.Stop()
 
 	regCtx := peer.NewContext(setup.ctx,

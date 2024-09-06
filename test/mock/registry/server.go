@@ -116,6 +116,7 @@ func (s *serverImpl) Start(options ...grpc.ServerOption) error {
 	s.errChan = grpcutils.ListenAndServe(s.ctx, s.listenOn, s.server)
 
 	logrus.Infof("Mock registry host at: %v", s.GetListenEndpointURI().String())
+
 	go func() {
 		select {
 		case <-s.ctx.Done():

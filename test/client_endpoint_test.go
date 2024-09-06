@@ -67,6 +67,7 @@ type myEndpouint struct {
 // NewCrossNSE construct a new Cross connect test NSE
 func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGenerator token.GeneratorFunc, clientDialOptions ...grpc.DialOption) endpoint.Endpoint {
 	var crossNSe = &myEndpouint{}
+
 	nseClient := chain.NewNetworkServiceEndpointRegistryClient(
 		registryclient.NewNetworkServiceEndpointRegistryClient(ctx,
 			registryclient.WithClientURL(connectTo),
@@ -102,11 +103,14 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	if runtime.GOOS != "linux" {
 		f.T().Skip("not a linux")
 	}
+
 	t := f.T()
 	// TODO: check with defer goleak.VerifyNone(t)
 	setup := newSetup(t)
 	setup.Start()
+
 	defer setup.Stop()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -133,6 +137,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	nseRegClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx,
 		registryclient.WithClientURL(&setup.configuration.ListenOn[0]),
 		registryclient.WithDialOptions(setup.dialOptions()...))
+
 	logrus.Infof("Register network service")
 	ns, nserr := nsRegClient.Register(context.Background(), &registry.NetworkService{
 		Name: "my-service",
@@ -161,6 +166,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	)
 
 	var connection *networkservice.Connection
+
 	ctx = clienturlctx.WithClientURL(ctx, &setup.configuration.ListenOn[0])
 
 	connection, err = cl.Request(ctx, &networkservice.NetworkServiceRequest{

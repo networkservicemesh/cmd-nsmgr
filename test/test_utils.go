@@ -58,9 +58,11 @@ import (
 func TempFolder() string {
 	baseDir := path.Join(os.TempDir(), "nsm")
 	err := os.MkdirAll(baseDir, os.ModeDir|os.ModePerm)
+
 	if err != nil {
 		logrus.Errorf("err: %v", err)
 	}
+
 	socketFile, _ := os.MkdirTemp(baseDir, "nsm_test")
 	return socketFile
 }
@@ -102,10 +104,13 @@ func (s *testSetup) init() {
 	if err != nil {
 		logrus.Fatalf("error getting x509 Source: %+v", err)
 	}
+
 	s.SVid, err = s.Source.GetX509SVID()
+
 	if err != nil {
 		logrus.Fatalf("error getting x509 SVid: %+v", err)
 	}
+
 	logrus.Infof("SVID: %q", s.SVid.ID)
 
 	// Setup registry
@@ -169,6 +174,7 @@ func (s *testSetup) CheckHeal() {
 func (s *testSetup) newClient(ctx context.Context) grpc.ClientConnInterface {
 	clientCtx, clientCancelFunc := context.WithTimeout(ctx, 5*time.Second)
 	defer clientCancelFunc()
+
 	grpcCC, err := grpc.DialContext(clientCtx, grpcutils.URLToTarget(&s.configuration.ListenOn[0]), s.dialOptions()...)
 	require.Nil(s.t, err)
 	return grpcCC
