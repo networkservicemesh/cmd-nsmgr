@@ -45,7 +45,7 @@ import (
 	"github.com/networkservicemesh/api/pkg/api/registry"
 )
 
-// Server mock registry server interface
+// Server mock registry server interface.
 type Server interface {
 	NetworkServiceRegistryServer() registry.NetworkServiceRegistryServer
 	NetworkServiceEndpointRegistryServer() registry.NetworkServiceEndpointRegistryServer

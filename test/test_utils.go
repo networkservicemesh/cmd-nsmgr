@@ -58,7 +58,6 @@ import (
 func TempFolder() string {
 	baseDir := path.Join(os.TempDir(), "nsm")
 	err := os.MkdirAll(baseDir, os.ModeDir|os.ModePerm)
-
 	if err != nil {
 		logrus.Errorf("err: %v", err)
 	}
@@ -86,10 +85,11 @@ func (s *testSetup) init() {
 	s.baseDir = TempFolder()
 
 	// Configure ListenOnURL
-	s.configuration.ListenOn = []url.URL{{
-		Scheme: "unix",
-		Path:   path.Join(s.baseDir, "nsm.server.sock"),
-	},
+	s.configuration.ListenOn = []url.URL{
+		{
+			Scheme: "unix",
+			Path:   path.Join(s.baseDir, "nsm.server.sock"),
+		},
 	}
 
 	// All TCP public IP as default address
@@ -106,7 +106,6 @@ func (s *testSetup) init() {
 	}
 
 	s.SVid, err = s.Source.GetX509SVID()
-
 	if err != nil {
 		logrus.Fatalf("error getting x509 SVid: %+v", err)
 	}
@@ -168,7 +167,7 @@ func (s *testSetup) CheckHeal() {
 	})
 	assert.NoError(s.t, err)
 	assert.NotNil(s.t, healthResponse)
-	assert.Equal(s.t, grpc_health_v1.HealthCheckResponse_SERVING, healthResponse.Status)
+	assert.Equal(s.t, grpc_health_v1.HealthCheckResponse_SERVING, healthResponse.GetStatus())
 }
 
 func (s *testSetup) newClient(ctx context.Context) grpc.ClientConnInterface {

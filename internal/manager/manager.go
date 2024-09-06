@@ -81,7 +81,6 @@ func (m *manager) initSecurity() (err error) {
 	logrus.Infof("Obtaining X509 Certificate Source")
 
 	m.source, err = workloadapi.NewX509Source(m.ctx)
-
 	if err != nil {
 		logrus.Fatalf("error getting x509 source: %+v", err)
 	}
@@ -230,13 +229,13 @@ func (m *manager) startServers(server *grpc.Server) {
 func genPublishableURL(listenOn []url.URL, logger log.Logger) *url.URL {
 	u := defaultURL(listenOn)
 	addrs, err := net.InterfaceAddrs()
-
 	if err != nil {
 		logger.Warn(err.Error())
 		return u
 	}
 	return listenonurl.GetPublicURL(addrs, u)
 }
+
 func defaultURL(listenOn []url.URL) *url.URL {
 	for i := 0; i < len(listenOn); i++ {
 		u := &listenOn[i]

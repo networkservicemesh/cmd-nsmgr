@@ -19,7 +19,6 @@ package test
 
 import (
 	"context"
-
 	"net/url"
 	"os"
 	"path"
@@ -64,9 +63,9 @@ type myEndpouint struct {
 	endpoint.Endpoint
 }
 
-// NewCrossNSE construct a new Cross connect test NSE
+// NewCrossNSE construct a new Cross connect test NSE.
 func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGenerator token.GeneratorFunc, clientDialOptions ...grpc.DialOption) endpoint.Endpoint {
-	var crossNSe = &myEndpouint{}
+	crossNSe := &myEndpouint{}
 
 	nseClient := chain.NewNetworkServiceEndpointRegistryClient(
 		registryclient.NewNetworkServiceEndpointRegistryClient(ctx,
@@ -98,7 +97,7 @@ func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGene
 	return crossNSe
 }
 
-// Check endpoint registration and Client request to it with sendfd/recvfd
+// Check endpoint registration and Client request to it with sendfd/recvfd.
 func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	if runtime.GOOS != "linux" {
 		f.T().Skip("not a linux")
@@ -149,7 +148,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 
 	nseReg, err := nseRegClient.Register(context.Background(), &registry.NetworkServiceEndpoint{
 		Name:                "nse-1",
-		NetworkServiceNames: []string{ns.Name},
+		NetworkServiceNames: []string{ns.GetName()},
 		Url:                 nseURL.String(),
 	})
 	require.Nil(t, err)
@@ -181,7 +180,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, connection)
-	require.Equal(t, 4, len(connection.Path.PathSegments))
+	require.Equal(t, 4, len(connection.GetPath().GetPathSegments()))
 
 	_, err = cl.Close(ctx, connection)
 	require.Nil(t, err)

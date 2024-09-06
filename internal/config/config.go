@@ -24,19 +24,19 @@ import (
 	"time"
 )
 
-// Config - configuration for cmd-nsmgr
+// Config - configuration for cmd-nsmgr.
 type Config struct {
-	Name                        string        `default:"nmgr" desc:"Name of Network service manager"`
-	ListenOn                    []url.URL     `default:"unix:///var/lib/networkservicemesh/nsm.io.sock" desc:"url to listen on. tcp:// one will be used a public to register NSM." split_words:"true"`
-	RegistryURL                 url.URL       `default:"tcp://localhost:5001" desc:"A NSE registry url to use" split_words:"true"`
-	MaxTokenLifetime            time.Duration `default:"10m" desc:"maximum lifetime of tokens" split_words:"true"`
+	Name                        string        `default:"nmgr"                                                                               desc:"Name of Network service manager"`
+	ListenOn                    []url.URL     `default:"unix:///var/lib/networkservicemesh/nsm.io.sock"                                     desc:"url to listen on. tcp:// one will be used a public to register NSM."  split_words:"true"`
+	RegistryURL                 url.URL       `default:"tcp://localhost:5001"                                                               desc:"A NSE registry url to use"                                            split_words:"true"`
+	MaxTokenLifetime            time.Duration `default:"10m"                                                                                desc:"maximum lifetime of tokens"                                           split_words:"true"`
 	RegistryServerPolicies      []string      `default:"etc/nsm/opa/common/.*.rego,etc/nsm/opa/registry/.*.rego,etc/nsm/opa/server/.*.rego" desc:"paths to files and directories that contain registry server policies" split_words:"true"`
 	RegistryClientPolicies      []string      `default:"etc/nsm/opa/common/.*.rego,etc/nsm/opa/registry/.*.rego,etc/nsm/opa/client/.*.rego" desc:"paths to files and directories that contain registry client policies" split_words:"true"`
-	LogLevel                    string        `default:"INFO" desc:"Log level" split_words:"true"`
-	DialTimeout                 time.Duration `default:"750ms" desc:"Timeout for the dial the next endpoint" split_words:"true"`
-	ForwarderNetworkServiceName string        `default:"forwarder" desc:"the default service name for forwarder discovering" split_words:"true"`
-	OpenTelemetryEndpoint       string        `default:"otel-collector.observability.svc.cluster.local:4317" desc:"OpenTelemetry Collector Endpoint" split_words:"true"`
-	MetricsExportInterval       time.Duration `default:"10s" desc:"interval between mertics exports" split_words:"true"`
-	PprofEnabled                bool          `default:"false" desc:"is pprof enabled" split_words:"true"`
-	PprofListenOn               string        `default:"localhost:6060" desc:"pprof URL to ListenAndServe" split_words:"true"`
+	LogLevel                    string        `default:"INFO"                                                                               desc:"Log level"                                                            split_words:"true"`
+	DialTimeout                 time.Duration `default:"750ms"                                                                              desc:"Timeout for the dial the next endpoint"                               split_words:"true"`
+	ForwarderNetworkServiceName string        `default:"forwarder"                                                                          desc:"the default service name for forwarder discovering"                   split_words:"true"`
+	OpenTelemetryEndpoint       string        `default:"otel-collector.observability.svc.cluster.local:4317"                                desc:"OpenTelemetry Collector Endpoint"                                     split_words:"true"`
+	MetricsExportInterval       time.Duration `default:"10s"                                                                                desc:"interval between mertics exports"                                     split_words:"true"`
+	PprofEnabled                bool          `default:"false"                                                                              desc:"is pprof enabled"                                                     split_words:"true"`
+	PprofListenOn               string        `default:"localhost:6060"                                                                     desc:"pprof URL to ListenAndServe"                                          split_words:"true"`
 }

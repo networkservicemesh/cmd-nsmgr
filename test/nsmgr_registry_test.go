@@ -51,5 +51,5 @@ func (f *NsmgrTestSuite) TestNSMgrEndpointRegister() {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, regResponse)
-	require.NotEmpty(t, regResponse.Url)
+	require.NotEmpty(t, regResponse.GetUrl())
 }
