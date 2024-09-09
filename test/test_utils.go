@@ -1,6 +1,6 @@
 // Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
 //
-// Copyright (c) 2022 Cisco and/or its affiliates.
+// Copyright (c) 2022-2024 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -58,9 +58,11 @@ import (
 func TempFolder() string {
 	baseDir := path.Join(os.TempDir(), "nsm")
 	err := os.MkdirAll(baseDir, os.ModeDir|os.ModePerm)
+
 	if err != nil {
 		logrus.Errorf("err: %v", err)
 	}
+
 	socketFile, _ := os.MkdirTemp(baseDir, "nsm_test")
 	return socketFile
 }
@@ -84,10 +86,11 @@ func (s *testSetup) init() {
 	s.baseDir = TempFolder()
 
 	// Configure ListenOnURL
-	s.configuration.ListenOn = []url.URL{{
-		Scheme: "unix",
-		Path:   path.Join(s.baseDir, "nsm.server.sock"),
-	},
+	s.configuration.ListenOn = []url.URL{
+		{
+			Scheme: "unix",
+			Path:   path.Join(s.baseDir, "nsm.server.sock"),
+		},
 	}
 
 	// All TCP public IP as default address
@@ -102,10 +105,12 @@ func (s *testSetup) init() {
 	if err != nil {
 		logrus.Fatalf("error getting x509 Source: %+v", err)
 	}
+
 	s.SVid, err = s.Source.GetX509SVID()
 	if err != nil {
 		logrus.Fatalf("error getting x509 SVid: %+v", err)
 	}
+
 	logrus.Infof("SVID: %q", s.SVid.ID)
 
 	// Setup registry
@@ -113,7 +118,7 @@ func (s *testSetup) init() {
 		&url.URL{Scheme: "tcp", Host: "127.0.0.1:0"},
 		spiffejwt.TokenGeneratorFunc(s.Source, time.Hour))
 
-	require.Nil(s.t, s.registryServer.Start(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(s.Source, s.Source, tlsconfig.AuthorizeAny())))))
+	require.NoError(s.t, s.registryServer.Start(grpc.Creds(credentials.NewTLS(tlsconfig.MTLSServerConfig(s.Source, s.Source, tlsconfig.AuthorizeAny())))))
 
 	s.configuration.RegistryURL = *s.registryServer.GetListenEndpointURI()
 	s.configuration.MaxTokenLifetime = time.Hour
@@ -124,7 +129,7 @@ func (s *testSetup) Start() {
 
 	go func() {
 		e := manager.RunNsmgr(s.ctx, s.configuration)
-		require.Nil(s.t, e)
+		require.NoError(s.t, e)
 	}()
 
 	// Check Health is ok
@@ -161,16 +166,17 @@ func (s *testSetup) CheckHeal() {
 	healthResponse, err := healthClient.Check(s.ctx, &grpc_health_v1.HealthCheckRequest{
 		Service: "networkservice.NetworkService",
 	})
-	assert.NoError(s.t, err)
+	require.NoError(s.t, err)
 	assert.NotNil(s.t, healthResponse)
-	assert.Equal(s.t, grpc_health_v1.HealthCheckResponse_SERVING, healthResponse.Status)
+	assert.Equal(s.t, grpc_health_v1.HealthCheckResponse_SERVING, healthResponse.GetStatus())
 }
 
 func (s *testSetup) newClient(ctx context.Context) grpc.ClientConnInterface {
 	clientCtx, clientCancelFunc := context.WithTimeout(ctx, 5*time.Second)
 	defer clientCancelFunc()
+
 	grpcCC, err := grpc.DialContext(clientCtx, grpcutils.URLToTarget(&s.configuration.ListenOn[0]), s.dialOptions()...)
-	require.Nil(s.t, err)
+	require.NoError(s.t, err)
 	return grpcCC
 }
 

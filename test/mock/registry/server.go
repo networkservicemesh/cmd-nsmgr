@@ -1,6 +1,6 @@
 // Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
 //
-// Copyright (c) 2022 Cisco and/or its affiliates.
+// Copyright (c) 2022-2024 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -45,7 +45,7 @@ import (
 	"github.com/networkservicemesh/api/pkg/api/registry"
 )
 
-// Server mock registry server interface
+// Server mock registry server interface.
 type Server interface {
 	NetworkServiceRegistryServer() registry.NetworkServiceRegistryServer
 	NetworkServiceEndpointRegistryServer() registry.NetworkServiceEndpointRegistryServer
@@ -116,6 +116,7 @@ func (s *serverImpl) Start(options ...grpc.ServerOption) error {
 	s.errChan = grpcutils.ListenAndServe(s.ctx, s.listenOn, s.server)
 
 	logrus.Infof("Mock registry host at: %v", s.GetListenEndpointURI().String())
+
 	go func() {
 		select {
 		case <-s.ctx.Done():

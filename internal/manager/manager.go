@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2022 Nordix and/or its affiliates.
 //
-// Copyright (c) 2023 Cisco and/or its affiliates.
+// Copyright (c) 2023-2024 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -79,14 +79,17 @@ func (m *manager) Stop() {
 func (m *manager) initSecurity() (err error) {
 	// Get a X509Source
 	logrus.Infof("Obtaining X509 Certificate Source")
+
 	m.source, err = workloadapi.NewX509Source(m.ctx)
 	if err != nil {
 		logrus.Fatalf("error getting x509 source: %+v", err)
 	}
+
 	m.svid, err = m.source.GetX509SVID()
 	if err != nil {
 		logrus.Fatalf("error getting x509 svid: %+v", err)
 	}
+
 	logrus.Infof("SVID: %q", m.svid.ID)
 	return
 }
@@ -105,6 +108,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	if err := m.initSecurity(); err != nil {
 		m.logger.Errorf("failed to create new spiffe TLS Peer %v", err)
+
 		return err
 	}
 
@@ -151,7 +155,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		mgrOptions = append(mgrOptions, nsmgr.WithRegistry(&configuration.RegistryURL))
 	}
 
-	m.mgr = nsmgr.NewServer(m.ctx, spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime), mgrOptions...)
+	m.mgr = nsmgr.NewServer(m.ctx, spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime), mgrOptions...) //nolint: contextcheck
 
 	// If we Listen on Unix socket for local connections we need to be sure folder are exist
 	createListenFolders(configuration)
@@ -173,6 +177,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	m.logger.Infof("Startup completed in %v", time.Since(starttime))
 	starttime = time.Now()
+
 	<-m.ctx.Done()
 
 	m.logger.Infof("Exit requested. Uptime: %v", time.Since(starttime))
@@ -205,6 +210,7 @@ func (m *manager) startServers(server *grpc.Server) {
 	var wg sync.WaitGroup
 	for i := 0; i < len(m.configuration.ListenOn); i++ {
 		listenURL := &m.configuration.ListenOn[i]
+
 		wg.Add(1)
 
 		go func() {
@@ -217,18 +223,22 @@ func (m *manager) startServers(server *grpc.Server) {
 			waitErrChan(m.ctx, errChan, m)
 		}()
 	}
+
 	wg.Wait()
 }
 
 func genPublishableURL(listenOn []url.URL, logger log.Logger) *url.URL {
 	u := defaultURL(listenOn)
 	addrs, err := net.InterfaceAddrs()
+
 	if err != nil {
 		logger.Warn(err.Error())
 		return u
 	}
+
 	return listenonurl.GetPublicURL(addrs, u)
 }
+
 func defaultURL(listenOn []url.URL) *url.URL {
 	for i := 0; i < len(listenOn); i++ {
 		u := &listenOn[i]
@@ -236,5 +246,6 @@ func defaultURL(listenOn []url.URL) *url.URL {
 			return u
 		}
 	}
+
 	return &listenOn[0]
 }

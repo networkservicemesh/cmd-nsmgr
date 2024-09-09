@@ -1,5 +1,7 @@
 // Copyright (c) 2020 Doc.ai and/or its affiliates.
 //
+// Copyright (c) 2024 Cisco and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,9 +28,11 @@ import (
 func TestTempFolder(t *testing.T) {
 	folder := TempFolder()
 	require.NotNil(t, folder)
+
 	defer func() {
-		require.Nil(t, os.Remove(folder))
+		require.NoError(t, os.Remove(folder))
 	}()
+
 	info, err := os.Stat(folder)
 	require.False(t, os.IsNotExist(err))
 	require.True(t, info.IsDir())

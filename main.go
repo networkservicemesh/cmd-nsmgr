@@ -16,6 +16,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build linux
+// +build linux
+
 package main
 
 import (
@@ -63,6 +66,7 @@ func main() {
 	if err := envconfig.Usage("nsm", cfg); err != nil {
 		log.FromContext(ctx).Fatal(err)
 	}
+
 	if err := envconfig.Process("nsm", cfg); err != nil {
 		log.FromContext(ctx).Fatalf("error processing cfg from env: %+v", err)
 	}
@@ -73,6 +77,7 @@ func main() {
 	if err != nil {
 		log.FromContext(ctx).Fatalf("invalid log level %s", cfg.LogLevel)
 	}
+
 	logrus.SetLevel(level)
 	log.EnableTracing(true)
 
@@ -82,6 +87,7 @@ func main() {
 		spanExporter := opentelemetry.InitSpanExporter(ctx, collectorAddress)
 		metricExporter := opentelemetry.InitOPTLMetricExporter(ctx, collectorAddress, cfg.MetricsExportInterval)
 		o := opentelemetry.Init(ctx, spanExporter, metricExporter, cfg.Name)
+
 		defer func() {
 			if err = o.Close(); err != nil {
 				log.FromContext(ctx).Error(err.Error())

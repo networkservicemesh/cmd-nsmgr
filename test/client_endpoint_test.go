@@ -1,5 +1,7 @@
 // Copyright (c) 2020-2022 Doc.ai and/or its affiliates.
 //
+// Copyright (c) 2024 Cisco and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +21,6 @@ package test
 
 import (
 	"context"
-
 	"net/url"
 	"os"
 	"path"
@@ -64,9 +65,10 @@ type myEndpouint struct {
 	endpoint.Endpoint
 }
 
-// NewCrossNSE construct a new Cross connect test NSE
+// NewCrossNSE construct a new Cross connect test NSE.
 func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGenerator token.GeneratorFunc, clientDialOptions ...grpc.DialOption) endpoint.Endpoint {
-	var crossNSe = &myEndpouint{}
+	crossNSe := &myEndpouint{}
+
 	nseClient := chain.NewNetworkServiceEndpointRegistryClient(
 		registryclient.NewNetworkServiceEndpointRegistryClient(ctx,
 			registryclient.WithClientURL(connectTo),
@@ -97,16 +99,19 @@ func newCrossNSE(ctx context.Context, name string, connectTo *url.URL, tokenGene
 	return crossNSe
 }
 
-// Check endpoint registration and Client request to it with sendfd/recvfd
+// Check endpoint registration and Client request to it with sendfd/recvfd.
 func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	if runtime.GOOS != "linux" {
 		f.T().Skip("not a linux")
 	}
+
 	t := f.T()
 	// TODO: check with defer goleak.VerifyNone(t)
 	setup := newSetup(t)
 	setup.Start()
+
 	defer setup.Stop()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -133,6 +138,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	nseRegClient := registryclient.NewNetworkServiceEndpointRegistryClient(ctx,
 		registryclient.WithClientURL(&setup.configuration.ListenOn[0]),
 		registryclient.WithDialOptions(setup.dialOptions()...))
+
 	logrus.Infof("Register network service")
 	ns, nserr := nsRegClient.Register(context.Background(), &registry.NetworkService{
 		Name: "my-service",
@@ -144,10 +150,10 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 
 	nseReg, err := nseRegClient.Register(context.Background(), &registry.NetworkServiceEndpoint{
 		Name:                "nse-1",
-		NetworkServiceNames: []string{ns.Name},
+		NetworkServiceNames: []string{ns.GetName()},
 		Url:                 nseURL.String(),
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, nseReg)
 
 	logrus.Infof("Register cross NSE")
@@ -161,6 +167,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 	)
 
 	var connection *networkservice.Connection
+
 	ctx = clienturlctx.WithClientURL(ctx, &setup.configuration.ListenOn[0])
 
 	connection, err = cl.Request(ctx, &networkservice.NetworkServiceRequest{
@@ -173,12 +180,12 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 			Context:        &networkservice.ConnectionContext{},
 		},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, connection)
-	require.Equal(t, 4, len(connection.Path.PathSegments))
+	require.Len(t, 4, len(connection.GetPath().GetPathSegments()))
 
 	_, err = cl.Close(ctx, connection)
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func (f *NsmgrTestSuite) registerCrossNSE(ctx context.Context, setup *testSetup, regClient registry.NetworkServiceEndpointRegistryClient, t *testing.T) {
@@ -195,5 +202,5 @@ func (f *NsmgrTestSuite) registerCrossNSE(ctx context.Context, setup *testSetup,
 		Name:                "cross-nse",
 		NetworkServiceNames: []string{"forwarder"},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
