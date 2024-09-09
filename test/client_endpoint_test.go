@@ -1,5 +1,7 @@
 // Copyright (c) 2020-2022 Doc.ai and/or its affiliates.
 //
+// Copyright (c) 2024 Cisco and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -151,7 +153,7 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 		NetworkServiceNames: []string{ns.GetName()},
 		Url:                 nseURL.String(),
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, nseReg)
 
 	logrus.Infof("Register cross NSE")
@@ -178,12 +180,12 @@ func (f *NsmgrTestSuite) TestNSmgrEndpointSendFD() {
 			Context:        &networkservice.ConnectionContext{},
 		},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, connection)
-	require.Equal(t, 4, len(connection.GetPath().GetPathSegments()))
+	require.Len(t, 4, len(connection.GetPath().GetPathSegments()))
 
 	_, err = cl.Close(ctx, connection)
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func (f *NsmgrTestSuite) registerCrossNSE(ctx context.Context, setup *testSetup, regClient registry.NetworkServiceEndpointRegistryClient, t *testing.T) {
@@ -200,5 +202,5 @@ func (f *NsmgrTestSuite) registerCrossNSE(ctx context.Context, setup *testSetup,
 		Name:                "cross-nse",
 		NetworkServiceNames: []string{"forwarder"},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 }

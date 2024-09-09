@@ -1,5 +1,7 @@
 // Copyright (c) 2020-2021 Doc.ai and/or its affiliates.
 //
+// Copyright (c) 2024 Cisco and/or its affiliates.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,7 +51,7 @@ func (f *NsmgrTestSuite) TestNSMgrEndpointRegister() {
 		Name: "my-nse",
 		Url:  (&url.URL{Scheme: "unix", Path: path.Join("nsmgr", "endpoint.socket")}).String(),
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, regResponse)
 	require.NotEmpty(t, regResponse.GetUrl())
 }

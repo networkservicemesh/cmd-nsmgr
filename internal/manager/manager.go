@@ -2,7 +2,7 @@
 //
 // Copyright (c) 2022 Nordix and/or its affiliates.
 //
-// Copyright (c) 2023 Cisco and/or its affiliates.
+// Copyright (c) 2023-2024 Cisco and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -108,6 +108,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 
 	if err := m.initSecurity(); err != nil {
 		m.logger.Errorf("failed to create new spiffe TLS Peer %v", err)
+
 		return err
 	}
 
@@ -154,7 +155,7 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 		mgrOptions = append(mgrOptions, nsmgr.WithRegistry(&configuration.RegistryURL))
 	}
 
-	m.mgr = nsmgr.NewServer(m.ctx, spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime), mgrOptions...)
+	m.mgr = nsmgr.NewServer(m.ctx, spiffejwt.TokenGeneratorFunc(m.source, m.configuration.MaxTokenLifetime), mgrOptions...) //nolint: contextcheck
 
 	// If we Listen on Unix socket for local connections we need to be sure folder are exist
 	createListenFolders(configuration)
@@ -229,10 +230,12 @@ func (m *manager) startServers(server *grpc.Server) {
 func genPublishableURL(listenOn []url.URL, logger log.Logger) *url.URL {
 	u := defaultURL(listenOn)
 	addrs, err := net.InterfaceAddrs()
+
 	if err != nil {
 		logger.Warn(err.Error())
 		return u
 	}
+
 	return listenonurl.GetPublicURL(addrs, u)
 }
 
@@ -243,5 +246,6 @@ func defaultURL(listenOn []url.URL) *url.URL {
 			return u
 		}
 	}
+
 	return &listenOn[0]
 }
