@@ -89,6 +89,11 @@ func main() {
 		}()
 	}
 
+	logruslogger.SetupLevelChangeOnSignal(ctx, map[os.Signal]logrus.Level{
+		syscall.SIGUSR1: logrus.TraceLevel,
+		syscall.SIGUSR2: level,
+	})
+
 	// Configure pprof
 	if cfg.PprofEnabled {
 		go pprofutils.ListenAndServe(ctx, cfg.PprofListenOn)
