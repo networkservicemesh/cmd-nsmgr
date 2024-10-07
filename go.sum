@@ -104,8 +104,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.4/go.mod h1:BSXmuO+STAnVfr
 github.com/miekg/dns v1.1.50 h1:DQUfb9uc6smULcREF09Uc+/Gd46YWqJd5DbpPE9xkcA=
 github.com/networkservicemesh/api v1.13.4-0.20240815101554-fdbfcd84fd0e h1:Fs34ZZN+bujq5OQEQUpxm0gYQ3g7uSCkcKcoUt70Be0=
 github.com/networkservicemesh/api v1.13.4-0.20240815101554-fdbfcd84fd0e/go.mod h1:B8FmS3XZ7NZY7ZEtdcNg2NHYppDHlr4kl4eecdZN9eI=
-github.com/networkservicemesh/sdk v0.5.1-0.20241004230712-95c7ff746298 h1:HuMP8S6DLBASeV30uH6an7MWV7nfrw4YAnavRqFD9Pg=
-github.com/networkservicemesh/sdk v0.5.1-0.20241004230712-95c7ff746298/go.mod h1:nz2VJ3l/UDvsEusdIZf7OMxC7zLrRCV1PuziPjxJeVE=
+github.com/networkservicemesh/sdk v0.5.1-0.20241007094110-76b397f06202 h1:tEKQzh43d+ByFC2JYk7WSkryHPZF//RLK5l85/mp1H0=
+github.com/networkservicemesh/sdk v0.5.1-0.20241007094110-76b397f06202/go.mod h1:nz2VJ3l/UDvsEusdIZf7OMxC7zLrRCV1PuziPjxJeVE=
 github.com/open-policy-agent/opa v0.44.0 h1:sEZthsrWBqIN+ShTMJ0Hcz6a3GkYsY4FaB2S/ou2hZk=
 github.com/open-policy-agent/opa v0.44.0/go.mod h1:YpJaFIk5pq89n/k72c1lVvfvR5uopdJft2tMg1CW/yU=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
