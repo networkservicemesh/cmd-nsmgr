@@ -149,5 +149,6 @@ issues:
     - path: main.go
       linters:
         - revive
+      text: 'package-comments: should have a package comment'
   max-issues-per-linter: 0
   max-same-issues: 0
