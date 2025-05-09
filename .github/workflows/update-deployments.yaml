@@ -6,7 +6,7 @@ on:
       - main
 jobs:
   update-deployments-k8s:
-    if: ${{ github.repository != 'networkservicemesh/cmd-template' }}
+    if: ${{ github.repository != 'networkservicemesh/cmd-template' && !startsWith(github.event.commits[0].message, '[github-actions]') }}
     uses: networkservicemesh/.github/.github/workflows/update-deployments.yaml@main
     secrets:
       token: ${{ secrets.NSM_BOT_GITHUB_TOKEN }}
