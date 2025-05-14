@@ -77,3 +77,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+replace github.com/networkservicemesh/sdk => github.com/Nordix/nsm-sdk v0.5.1-0.20250523114249-0b5b656007c1
