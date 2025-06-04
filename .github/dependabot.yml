@@ -1,0 +1,16 @@
+---
+version: 2
+updates:
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      gh-actions-minor:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "[github-actions] "
