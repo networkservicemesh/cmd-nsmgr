@@ -52,6 +52,7 @@ import (
 	_ "github.com/stretchr/testify/require"
 	_ "github.com/stretchr/testify/suite"
 	_ "google.golang.org/grpc"
+	_ "google.golang.org/grpc/backoff"
 	_ "google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/health/grpc_health_v1"
 	_ "google.golang.org/grpc/peer"
