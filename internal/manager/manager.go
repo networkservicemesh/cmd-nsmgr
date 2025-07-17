@@ -4,8 +4,6 @@
 //
 // Copyright (c) 2023 Cisco and/or its affiliates.
 //
-// Copyright (c) 2025 OpenInfra Foundation Europe and/or its affiliates.
-//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,7 +39,6 @@ import (
 	"github.com/spiffe/go-spiffe/v2/svid/x509svid"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials"
 
 	"github.com/networkservicemesh/sdk/pkg/networkservice/chains/nsmgr"
@@ -118,12 +115,6 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 	tlsServerConfig := tlsconfig.MTLSServerConfig(m.source, m.source, tlsconfig.AuthorizeAny())
 	tlsServerConfig.MinVersion = tls.VersionTLS12
 	spiffeIDConnMap := genericsync.Map[spiffeid.ID, *genericsync.Map[string, struct{}]]{}
-	// Set faster reconnect if registry has been unavailable. Otherwise gRPC might
-	// wait up to 2 minutes to attempt reconnect due to the default backoff algorithm.
-	grpcBackoffCfg := backoff.DefaultConfig
-	if grpcBackoffCfg.MaxDelay != configuration.DialMaxDelay {
-		grpcBackoffCfg.MaxDelay = configuration.DialMaxDelay
-	}
 	mgrOptions := []nsmgr.Option{
 		nsmgr.WithName(configuration.Name),
 		nsmgr.WithURL(u.String()),
@@ -150,9 +141,6 @@ func RunNsmgr(ctx context.Context, configuration *config.Config) error {
 				grpc.WithDefaultCallOptions(
 					grpc.PerRPCCredentials(token.NewPerRPCCredentials(spiffejwt.TokenGeneratorFunc(m.source, configuration.MaxTokenLifetime))),
 				),
-				grpc.WithConnectParams(grpc.ConnectParams{
-					Backoff: grpcBackoffCfg,
-				}),
 				grpcfd.WithChainStreamInterceptor(),
 				grpcfd.WithChainUnaryInterceptor(),
 			)...,

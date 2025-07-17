@@ -34,8 +34,7 @@ docker build .
 * `NSM_REGISTRY_SERVER_POLICIES`       - paths to files and directories that contain registry server policies (default: "etc/nsm/opa/common/.*.rego,etc/nsm/opa/registry/.*.rego,etc/nsm/opa/server/.*.rego")
 * `NSM_REGISTRY_CLIENT_POLICIES`       - paths to files and directories that contain registry client policies (default: "etc/nsm/opa/common/.*.rego,etc/nsm/opa/registry/.*.rego,etc/nsm/opa/client/.*.rego")
 * `NSM_LOG_LEVEL`                      - Log level (default: "INFO")
-* `NSM_DIAL_TIMEOUT`                   - Timeout for the dial the next endpoint (default: "15s")
-* `NSM_DIAL_MAX_DELAY`                 - Upper bound on gRPC connection backoff delay
+* `NSM_DIAL_TIMEOUT`                   - Timeout for the dial the next endpoint (default: "750ms")
 * `NSM_FORWARDER_NETWORK_SERVICE_NAME` - the default service name for forwarder discovering (default: "forwarder")
 * `NSM_OPEN_TELEMETRY_ENDPOINT`        - OpenTelemetry Collector Endpoint (default: "otel-collector.observability.svc.cluster.local:4317")
 * `NSM_METRICS_EXPORT_INTERVAL`        - interval between mertics exports (default: "10s")
