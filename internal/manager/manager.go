@@ -1,8 +1,8 @@
 // Copyright (c) 2020-2022 Doc.ai and/or its affiliates.
 //
-// Copyright (c) 2022 Nordix and/or its affiliates.
-//
 // Copyright (c) 2023 Cisco and/or its affiliates.
+//
+// Copyright (c) 2022-2025 Nordix and/or its affiliates.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -229,6 +229,7 @@ func genPublishableURL(listenOn []url.URL, logger log.Logger) *url.URL {
 	}
 	return listenonurl.GetPublicURL(addrs, u)
 }
+
 func defaultURL(listenOn []url.URL) *url.URL {
 	for i := 0; i < len(listenOn); i++ {
 		u := &listenOn[i]
