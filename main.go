@@ -2,6 +2,8 @@
 //
 // Copyright (c) 2020-2024 Cisco and/or its affiliates.
 //
+// Copyright (c) 2025 OpenInfra Foundation Europe. All rights reserved.
+//
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +22,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -65,6 +68,26 @@ func main() {
 	}
 	if err := envconfig.Process("nsm", cfg); err != nil {
 		log.FromContext(ctx).Fatalf("error processing cfg from env: %+v", err)
+	}
+
+	// Normalize ListenOn addresses in config
+	for i := range cfg.ListenOn {
+		u := &cfg.ListenOn[i]
+
+		if u.Scheme != "tcp" {
+			continue
+		}
+
+		host := u.Hostname()
+		port := u.Port()
+		if port == "" {
+			continue
+		}
+
+		// If this is a literal IPv6 address, net.Listen requires brackets
+		if ip := net.ParseIP(host); ip != nil && ip.To4() == nil {
+			u.Host = net.JoinHostPort(host, port)
+		}
 	}
 
 	log.FromContext(ctx).Infof("Using configuration: %v", cfg)
