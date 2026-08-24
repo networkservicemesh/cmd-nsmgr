@@ -1,4 +1,4 @@
-FROM golang:1.24 as go
+FROM golang:1.25 as go
 ENV GO111MODULE=on
 ENV CGO_ENABLED=0
 ENV GOBIN=/bin
